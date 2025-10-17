@@ -1,0 +1,44 @@
+# 构建目录
+build/
+build_*/
+server/build/
+agent/build/
+
+# 日志文件
+*.log
+logs/
+*_logs/
+*_logs_*/
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python虚拟环境
+frontend/venv/
+frontend/__pycache__/
+frontend/*.pyc
+
+# 编译产物
+*.o
+*.so
+*.dylib
+*.exe
+
+# CMake缓存
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# 测试日志
+test_logs*/
+full_system_logs/
