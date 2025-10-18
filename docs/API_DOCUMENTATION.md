@@ -210,8 +210,8 @@ Agent向Server上报系统资源使用情况。
   "summary": "CPU使用率过高",
   "for": "5m",
   "expression": {
-    "metric": "cpu.usage_percent",
-    "stable": "node",
+    "metric": "usage_percent",
+    "stable": "cpu",
     "conditions": [
       {
         "operator": ">",
@@ -220,12 +220,10 @@ Agent向Server上报系统资源使用情况。
     ],
     "tags": [
       {
-        "key": "environment",
-        "value": "production"
+        "environment": "production"
       },
       {
-        "key": "team",
-        "value": "ops"
+        "team": "ops"
       }
     ]
   }
@@ -243,8 +241,8 @@ Agent向Server上报系统资源使用情况。
   "summary": "系统资源紧张",
   "for": "1m",
   "expression": {
-    "metric": "cpu.usage_percent",
-    "stable": "node",
+    "metric": "usage_percent",
+    "stable": "cpu",
     "conditions": [
       {
         "operator": ">",
@@ -257,8 +255,7 @@ Agent向Server上报系统资源使用情况。
     ],
     "tags": [
       {
-        "key": "environment",
-        "value": "production"
+        "environment": "production"
       }
     ]
   }
@@ -276,8 +273,8 @@ Agent向Server上报系统资源使用情况。
   "summary": "GPU温度异常",
   "for": "2m",
   "expression": {
-    "metric": "gpu.0.temperature",
-    "stable": "node",
+    "metric": "0.temperature",
+    "stable": "gpu",
     "conditions": [
       {
         "operator": ">",
@@ -286,8 +283,7 @@ Agent向Server上报系统资源使用情况。
     ],
     "tags": [
       {
-        "key": "environment",
-        "value": "production"
+        "environment": "production"
       }
     ]
   }
@@ -309,8 +305,8 @@ Agent向Server上报系统资源使用情况。
     "summary": "CPU使用率过高",
     "for": "5m",
     "expression": {
-      "metric": "cpu.usage_percent",
-      "stable": "node",
+      "metric": "usage_percent",
+      "stable": "cpu",
       "conditions": [
         {
           "operator": ">",
@@ -319,12 +315,10 @@ Agent向Server上报系统资源使用情况。
       ],
       "tags": [
         {
-          "key": "environment",
-          "value": "production"
+          "environment": "production"
         },
         {
-          "key": "team",
-          "value": "ops"
+          "team": "ops"
         }
       ]
     },
@@ -359,8 +353,8 @@ Agent向Server上报系统资源使用情况。
   "summary": "CPU使用率严重过高",
   "for": "5m",
   "expression": {
-    "metric": "cpu.usage_percent",
-    "stable": "node",
+    "metric": "usage_percent",
+    "stable": "cpu",
     "conditions": [
       {
         "operator": ">",
@@ -369,16 +363,13 @@ Agent向Server上报系统资源使用情况。
     ],
     "tags": [
       {
-        "key": "environment",
-        "value": "production"
+        "environment": "production"
       },
       {
-        "key": "team",
-        "value": "ops"
+        "team": "ops"
       },
       {
-        "key": "updated",
-        "value": "true"
+        "updated": "true"
       }
     ]
   }
@@ -400,8 +391,8 @@ Agent向Server上报系统资源使用情况。
     "summary": "CPU使用率严重过高",
     "for": "5m",
     "expression": {
-      "metric": "cpu.usage_percent",
-      "stable": "node",
+      "metric": "usage_percent",
+      "stable": "cpu",
       "conditions": [
         {
           "operator": ">",
@@ -410,16 +401,13 @@ Agent向Server上报系统资源使用情况。
       ],
       "tags": [
         {
-          "key": "environment",
-          "value": "production"
+          "environment": "production"
         },
         {
-          "key": "team",
-          "value": "ops"
+          "team": "ops"
         },
         {
-          "key": "updated",
-          "value": "true"
+          "updated": "true"
         }
       ]
     },
@@ -483,8 +471,8 @@ Agent向Server上报系统资源使用情况。
       "summary": "CPU使用率过高",
       "for": "5m",
       "expression": {
-        "metric": "cpu.usage_percent",
-        "stable": "node",
+        "metric": "usage_percent",
+        "stable": "cpu",
         "conditions": [
           {
             "operator": ">",
@@ -493,12 +481,10 @@ Agent向Server上报系统资源使用情况。
         ],
         "tags": [
           {
-            "key": "environment",
-            "value": "production"
+            "environment": "production"
           },
           {
-            "key": "team",
-            "value": "ops"
+            "team": "ops"
           }
         ]
       },
@@ -515,8 +501,8 @@ Agent向Server上报系统资源使用情况。
       "summary": "内存使用率严重过高",
       "for": "3m",
       "expression": {
-        "metric": "memory.usage_percent",
-        "stable": "node",
+        "metric": "usage_percent",
+        "stable": "memory",
         "conditions": [
           {
             "operator": ">",
@@ -525,12 +511,10 @@ Agent向Server上报系统资源使用情况。
         ],
         "tags": [
           {
-            "key": "environment",
-            "value": "production"
+            "environment": "production"
           },
           {
-            "key": "team",
-            "value": "ops"
+            "team": "ops"
           }
         ]
       },
@@ -571,8 +555,8 @@ Agent向Server上报系统资源使用情况。
     "summary": "CPU使用率过高",
     "for": "5m",
     "expression": {
-      "metric": "cpu.usage_percent",
-      "stable": "node",
+      "metric": "usage_percent",
+      "stable": "cpu",
       "conditions": [
         {
           "operator": ">",
@@ -581,12 +565,10 @@ Agent向Server上报系统资源使用情况。
       ],
       "tags": [
         {
-          "key": "environment",
-          "value": "production"
+          "environment": "production"
         },
         {
-          "key": "team",
-          "value": "ops"
+          "team": "ops"
         }
       ]
     },
@@ -674,8 +656,8 @@ Agent向Server上报系统资源使用情况。
       "summary": "CPU使用率过高",
       "for": "5m",
       "expression": {
-        "metric": "cpu.usage_percent",
-        "stable": "node",
+        "metric": "usage_percent",
+        "stable": "cpu",
         "conditions": [
           {
             "operator": ">",
@@ -684,12 +666,10 @@ Agent向Server上报系统资源使用情况。
         ],
         "tags": [
           {
-            "key": "environment",
-            "value": "production"
+            "environment": "production"
           },
           {
-            "key": "team",
-            "value": "ops"
+            "team": "ops"
           }
         ]
       },
@@ -1266,10 +1246,11 @@ GET /api/nodes/192.168.1.100/metrics?recentSeconds=600
 ```json
 {
   "expression": {
-    "metric": "cpu.usage_percent",
+    "metric": "usage_percent",
+    "stable": "cpu",
     "conditions": [{"operator": ">", "threshold": 80.0}],
     "tags": [
-      {"key": "host_ip", "value": "192.168.10.29"}
+      {"host_ip": "192.168.10.29"}
     ]
   }
 }
@@ -1279,10 +1260,11 @@ GET /api/nodes/192.168.1.100/metrics?recentSeconds=600
 ```json
 {
   "expression": {
-    "metric": "memory.usage_percent",
+    "metric": "usage_percent",
+    "stable": "memory",
     "conditions": [{"operator": ">", "threshold": 85.0}],
     "tags": [
-      {"key": "box_id", "value": "1"}
+      {"box_id": "1"}
     ]
   }
 }
@@ -1292,12 +1274,13 @@ GET /api/nodes/192.168.1.100/metrics?recentSeconds=600
 ```json
 {
   "expression": {
-    "metric": "cpu.usage_percent",
+    "metric": "usage_percent",
+    "stable": "cpu",
     "conditions": [{"operator": ">", "threshold": 95.0}],
     "tags": [
-      {"key": "box_id", "value": "1"},
-      {"key": "os_type", "value": "linux"},
-      {"key": "resource_type", "value": "production"}
+      {"box_id": "1"},
+      {"os_type": "linux"},
+      {"resource_type": "production"}
     ]
   }
 }
@@ -1329,7 +1312,14 @@ GET /api/nodes/192.168.1.100/metrics?recentSeconds=600
 - `network.{interface}.rx_rate` - 网络接收速率
 - `network.{interface}.tx_rate` - 网络发送速率
 - `gpu.{device}.temperature` - GPU温度
-- `gpu.{device}.usage_percent` - GPU使用率
+- `gpu.{device}.compute_usage` - GPU计算使用率
+- `gpu.{device}.mem_usage` - GPU内存使用率
+
+**指标格式说明：**
+- 在API请求中，使用 `stable` 和 `metric` 分离格式：
+  - `stable: "cpu"`, `metric: "usage_percent"` → 完整指标名：`cpu.usage_percent`
+  - `stable: "gpu"`, `metric: "0.temperature"` → 完整指标名：`gpu.0.temperature`
+- 在API响应中，返回分离的 `stable` 和 `metric` 字段
 
 ### 9.2 逻辑操作符
 
@@ -1393,8 +1383,8 @@ curl -X POST http://localhost:18888/api/alert-rules \
     "summary": "CPU使用率过高",
     "for": "5m",
     "expression": {
-      "metric": "cpu.usage_percent",
-      "stable": "node",
+      "metric": "usage_percent",
+      "stable": "cpu",
       "conditions": [
         {
           "operator": ">",
@@ -1403,8 +1393,7 @@ curl -X POST http://localhost:18888/api/alert-rules \
       ],
       "tags": [
         {
-          "key": "environment",
-          "value": "production"
+          "environment": "production"
         }
       ]
     }
@@ -1432,10 +1421,11 @@ curl -X GET "http://localhost:18888/api/nodes/192.168.1.100/metrics?recentSecond
 3. **数值精度**: 浮点数保留6位小数
 4. **设备标识**: 设备名称区分大小写
 5. **ID格式**: 规则ID和事件ID均为字符串格式
-6. **标签格式**: 标签使用key-value数组格式
-7. **并发限制**: 建议控制并发请求数量，避免服务器过载
-8. **错误重试**: 建议实现指数退避的重试机制
-9. **数据验证**: 客户端应验证响应数据的完整性
+6. **标签格式**: 标签使用对象格式 `{"key": "value"}` 而不是 `{"key": "key", "value": "value"}`
+7. **指标格式**: 使用 `stable` 和 `metric` 分离格式，系统会自动组合为完整指标名
+8. **并发限制**: 建议控制并发请求数量，避免服务器过载
+9. **错误重试**: 建议实现指数退避的重试机制
+10. **数据验证**: 客户端应验证响应数据的完整性
 
 ---
 
@@ -1444,15 +1434,9 @@ curl -X GET "http://localhost:18888/api/nodes/192.168.1.100/metrics?recentSecond
 - **v1.0.0** (2024-01-01): 初始版本，支持基础告警规则和事件管理
 - **v1.1.0** (2024-01-15): 新增多条件告警规则支持
 - **v1.2.0** (2024-01-30): 新增设备指定监控功能
-- **v2.1.0** (2024-10-18): 标签匹配功能增强
-  - 增强告警规则标签匹配功能，支持15种标签类型
-  - 支持基于IP地址、机箱ID、槽位ID、CPU ID等精确过滤
-  - 支持基于操作系统类型、资源类型等环境过滤
-  - 支持多标签组合匹配，提供更灵活的告警规则配置
-  - 优化告警表达式评估服务，提升标签匹配性能
-  - 更新告警规则API结构，使用新的DTO格式
-  - 更新告警事件API结构，支持annotations和labels
-  - 时间戳格式改为ISO 8601
-  - ID字段改为字符串格式
-  - 标签格式改为key-value数组
-  - 新增节点IP地址快照功能
+- **v2.2.0** (2024-10-18): 优化API格式和标签结构
+  - 更新告警规则API格式，使用 `stable` 和 `metric` 分离设计
+  - 优化标签格式，使用对象格式 `{"key": "value"}` 替代 `{"key": "key", "value": "value"}`
+  - 更新所有API示例和响应格式
+  - 完善指标格式说明和组合规则
+  - 增强API文档的准确性和一致性
