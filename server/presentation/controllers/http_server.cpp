@@ -69,8 +69,8 @@ void HttpServer::setupRoutes() {
 
     // ============ 告警规则管理API ============
     
-    // POST /api/alert-rules - 创建告警规则
-    svr->Post("/api/alert-rules", [this](const httplib::Request& req, httplib::Response& res) {
+    // POST /api/alarm/rules - 创建告警规则（多条件）
+    svr->Post("/api/alarm/rules", [this](const httplib::Request& req, httplib::Response& res) {
         std::cout << "[AlertRule] Create request from " << req.remote_addr << std::endl;
         
         std::string responseBody;
@@ -513,7 +513,7 @@ void HttpServer::handleCreateAlertRule(const std::string& body, std::string& res
         response = SimpleJsonParser::serializeAlertRuleDetailResponse(responseDto);
         statusCode = (responseDto.code == 0) ? 201 : (responseDto.code == 400 ? 400 : 500);
 
-        std::cout << "  ✓ Alert rule created: " << request.ruleName << std::endl;
+        std::cout << "  ✓ Alert rule created: " << request.alert_name << std::endl;
 
     } catch (const std::exception& e) {
         std::cerr << "  ✗ Error creating alert rule: " << e.what() << std::endl;

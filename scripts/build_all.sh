@@ -4,9 +4,13 @@
 
 set -e
 
-BUILD_DIR="build"
-SERVER_DIR="server"
-AGENT_DIR="agent"
+# 获取脚本所在目录和项目根目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+BUILD_DIR="$PROJECT_ROOT/build"
+SERVER_DIR="$PROJECT_ROOT/server"
+AGENT_DIR="$PROJECT_ROOT/agent"
 
 # 颜色输出函数
 log_info() {
@@ -52,7 +56,7 @@ main() {
     make -j4
     
     # 复制server可执行文件到统一目录
-    cp monitoring_server "../../$BUILD_DIR/"
+    cp monitoring_server "$BUILD_DIR/"
     log_success "Server 编译完成"
     
     cd ../..
@@ -67,7 +71,7 @@ main() {
     make -j4
     
     # 复制agent可执行文件到统一目录
-    cp monitoring_agent "../../$BUILD_DIR/"
+    cp monitoring_agent "$BUILD_DIR/"
     log_success "Agent 编译完成"
     
     cd ../..

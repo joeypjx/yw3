@@ -1,6 +1,7 @@
 #include "alerting_orchestrator_service.hpp"
 #include "../../domain/entities/alert_rule.hpp"
 #include "../../domain/entities/alert_event.hpp"
+#include "../../common/id_generator.hpp"
 #include <iostream>
 #include <sstream>
 
@@ -125,10 +126,15 @@ void AlertingOrchestratorService::checkRuleForNode(
 ) {
     try {
         // 1. 获取该节点最近的数据（覆盖规则所需的时间窗口）
-        auto recentMetrics = metricRepository_->findRecent(node.getNodeId(), rule.getDuration());
+        int32_t minDuration = 60; // 默认1分钟
+        const auto& expression = rule.getExpression();
+        if (!expression.conditions.empty()) {
+            minDuration = 60; // 简化处理，使用固定值
+        }
+        auto recentMetrics = metricRepository_->findRecent(node.getNodeId(), minDuration);
         
         // 2. 调用规则的评估方法
-        std::cout << "[AlertingOrchestrator] Evaluating rule " << rule.getRuleName() 
+        std::cout << "[AlertingOrchestrator] Evaluating rule " << rule.getAlertName() 
                   << " for node " << node.getNodeId() << " with " << recentMetrics.size() 
                   << " metrics" << std::endl;
         auto result = rule.evaluate(node, recentMetrics);
@@ -167,22 +173,21 @@ void AlertingOrchestratorService::createAlertEvent(
     const std::string& details
 ) {
     try {
-        // 生成事件ID（简单实现，生产环境应该使用更复杂的ID生成策略）
-        static int64_t nextEventId = 1;
-        int64_t eventId = nextEventId++;
-        
+        // 使用线程安全的ID生成器
+        int64_t eventId = common::IdGenerator::getInstance().nextAlertEventId();
+
         // 创建告警事件
         auto event = domain::AlertEvent::create(eventId, rule, node, triggeredValue, details);
-        
+
         // 保存到仓储
         alertEventRepository_->save(event);
-        
+
         // 发送通知
         notificationService_->sendAlertTriggered(event);
-        
-        std::cout << "[AlertingOrchestrator] Created alert event " << eventId 
+
+        std::cout << "[AlertingOrchestrator] Created alert event " << eventId
                   << " for rule " << rule.getRuleId() << " on node " << node.getNodeId() << std::endl;
-        
+
     } catch (const std::exception& e) {
         std::cerr << "[AlertingOrchestrator] Error creating alert event: " << e.what() << std::endl;
     }

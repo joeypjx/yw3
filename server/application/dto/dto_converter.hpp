@@ -288,7 +288,7 @@ public:
         dto.ruleId = event.getRuleId();
         dto.nodeId = event.getNodeId();
         dto.status = domain::alertStatusToString(event.getStatus());
-        dto.severity = domain::severityToString(event.getSeverity());
+        dto.severity = event.getSeverity();
         dto.startAt = event.getStartAt();
         dto.endAt = event.getEndAt();
         dto.triggeredValue = event.getTriggeredValue();
@@ -304,16 +304,32 @@ public:
     static AlertRuleDTO toAlertRuleDTO(const domain::AlertRule& rule) {
         AlertRuleDTO dto;
         dto.ruleId = rule.getRuleId();
-        dto.ruleName = rule.getRuleName();
-        dto.metricName = rule.getMetricName();
-        dto.threshold = rule.getThreshold();
-        dto.operator_ = domain::operatorToString(rule.getOperator());
-        dto.durationSeconds = rule.getDuration();
-        dto.severity = domain::severityToString(rule.getSeverity());
-        dto.isEnabled = rule.isEnabled();
+        dto.alert_name = rule.getAlertName();
+        dto.alert_type = rule.getAlertType();
         dto.description = rule.getDescription();
+        dto.enabled = rule.isEnabled();
+        dto.severity = rule.getSeverity();
+        dto.summary = rule.getSummary();
         dto.createdAt = rule.getCreatedAt();
         dto.updatedAt = rule.getUpdatedAt();
+        
+        // 转换表达式
+        const auto& domainExpression = rule.getExpression();
+        dto.expression.logic = domainExpression.logic;
+        dto.expression.stable = domainExpression.stable;
+        dto.expression.tags = domainExpression.tags;
+        
+        // 转换条件
+        for (const auto& domainCondition : domainExpression.conditions) {
+            AlertCondition appCondition;
+            appCondition.metric = domainCondition.metric;
+            appCondition.operator_ = domainCondition.operator_;
+            appCondition.threshold = domainCondition.threshold;
+            appCondition.duration = domainCondition.duration;
+            appCondition.tags = domainCondition.tags;
+            dto.expression.conditions.push_back(appCondition);
+        }
+        
         return dto;
     }
 

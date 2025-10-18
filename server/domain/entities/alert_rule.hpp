@@ -4,8 +4,11 @@
 #include <string>
 #include <cstdint>
 #include <vector>
+#include <map>
 #include "server_node.hpp"
 #include "metric_snapshot.hpp"
+#include "../services/alert_expression_evaluation_service.hpp"
+#include "../../common/time_utils.hpp"
 
 namespace monitoring::domain {
 
@@ -28,124 +31,85 @@ struct EvaluationResult {
 };
 
 /**
- * AlertRule - 告警规则实体
- * 定义监控指标的阈值和触发条件
+ * 告警规则实体
+ * 
+ * 支持复杂的多条件表达式评估
  */
 class AlertRule {
 public:
     /**
-     * 告警严重等级
+     * 构造函数
      */
-    enum class Severity {
-        WARNING,    // 警告级别
-        CRITICAL    // 严重级别
-    };
-
-    /**
-     * 比较操作符
-     */
-    enum class Operator {
-        GREATER_THAN,      // >
-        LESS_THAN,         // <
-        EQUAL,             // =
-        GREATER_OR_EQUAL,  // >=
-        LESS_OR_EQUAL      // <=
-    };
-
-    // 构造函数
     AlertRule(
         int32_t ruleId,
-        const std::string& ruleName,
-        const std::string& metricName,
-        double threshold,
-        Operator op,
-        int32_t durationSeconds,
-        Severity severity,
-        bool isEnabled = true
-    );
-
-    // 完整构造函数（包含描述和时间戳）
-    AlertRule(
-        int32_t ruleId,
-        const std::string& ruleName,
-        const std::string& metricName,
-        double threshold,
-        Operator op,
-        int32_t durationSeconds,
-        Severity severity,
-        bool isEnabled,
-        const std::string& description,
-        uint64_t createdAt,
-        uint64_t updatedAt
+        const std::string& alertName,
+        const AlertExpression& expression,
+        const std::string& severity,
+        bool isEnabled = true,
+        const std::string& description = "",
+        const std::string& alertType = "",
+        const std::string& summary = ""
     );
 
     // Getters
     int32_t getRuleId() const { return ruleId_; }
-    const std::string& getRuleName() const { return ruleName_; }
-    const std::string& getMetricName() const { return metricName_; }
-    double getThreshold() const { return threshold_; }
-    Operator getOperator() const { return operator_; }
-    int32_t getDuration() const { return durationSeconds_; }
-    Severity getSeverity() const { return severity_; }
+    const std::string& getAlertName() const { return alertName_; }
+    const AlertExpression& getExpression() const { return expression_; }
+    const std::string& getSeverity() const { return severity_; }
     bool isEnabled() const { return isEnabled_; }
     const std::string& getDescription() const { return description_; }
+    const std::string& getAlertType() const { return alertType_; }
+    const std::string& getSummary() const { return summary_; }
     uint64_t getCreatedAt() const { return createdAt_; }
     uint64_t getUpdatedAt() const { return updatedAt_; }
 
-    // 业务方法
+    // Setters
+    void setEnabled(bool enabled) { isEnabled_ = enabled; updateTimestamp(); }
+    void setDescription(const std::string& description) { description_ = description; updateTimestamp(); }
+    void setSummary(const std::string& summary) { summary_ = summary; updateTimestamp(); }
 
     /**
      * 评估告警规则
-     * 这是核心的决策函数，无状态、无副作用
-     *
-     * @param node 被评估的服务器节点
-     * @param recentMetrics 最近的指标快照列表（从旧到新排序）
+     * 
+     * @param node 目标节点
+     * @param recentMetrics 最近一段时间内的指标数据
      * @return 评估结果
      */
-    EvaluationResult evaluate(
-        const ServerNode& node,
-        const std::vector<MetricSnapshot>& recentMetrics
-    ) const;
+    EvaluationResult evaluate(const ServerNode& node, const std::vector<MetricSnapshot>& recentMetrics) const;
 
     /**
-     * 启用/禁用规则
+     * 检查数据是否足够新鲜
      */
-    void setEnabled(bool enabled) { isEnabled_ = enabled; }
+    bool isDataFresh(const std::vector<MetricSnapshot>& metrics) const;
 
     /**
-     * 设置更新时间
+     * 检查是否有足够的数据覆盖
      */
-    void setUpdatedAt(uint64_t timestamp) { updatedAt_ = timestamp; }
+    bool hasEnoughDataCoverage(const std::vector<MetricSnapshot>& metrics) const;
 
 private:
-    int32_t ruleId_;              // 规则ID
-    std::string ruleName_;        // 规则名称
-    std::string metricName_;      // 监控的指标名（如 "cpu.usage_percent"）
-    double threshold_;            // 阈值
-    Operator operator_;           // 比较操作符
-    int32_t durationSeconds_;     // 必须持续多久才触发（秒）
-    Severity severity_;           // 严重等级
-    bool isEnabled_;              // 是否启用
-    std::string description_;     // 规则描述
-    uint64_t createdAt_;          // 创建时间
-    uint64_t updatedAt_;          // 更新时间
+    int32_t ruleId_;
+    std::string alertName_;
+    AlertExpression expression_;
+    std::string severity_;
+    bool isEnabled_;
+    std::string description_;
+    std::string alertType_;
+    std::string summary_;
+    uint64_t createdAt_;
+    uint64_t updatedAt_;
 
-    // 辅助方法：检查单个值是否违反阈值
-    bool violatesThreshold(double value) const;
+    /**
+     * 更新时间戳
+     */
+    void updateTimestamp();
 
-    // 辅助方法：检查数据是否足够新鲜
-    bool isDataFresh(const std::vector<MetricSnapshot>& metrics, uint64_t maxAgeSeconds = 60) const;
+    /**
+     * 获取表达式的最小持续时间（秒）
+     */
+    int32_t getMinDurationSeconds() const;
 
-    // 辅助方法：检查数据是否覆盖所需时间窗口
-    bool hasEnoughDataCoverage(const std::vector<MetricSnapshot>& metrics) const;
 };
-
-// 辅助函数：枚举转字符串
-std::string severityToString(AlertRule::Severity severity);
-AlertRule::Severity stringToSeverity(const std::string& str);
-
-std::string operatorToString(AlertRule::Operator op);
-AlertRule::Operator stringToOperator(const std::string& str);
 
 } // namespace monitoring::domain
 

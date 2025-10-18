@@ -113,16 +113,52 @@ application::CreateAlertRuleRequestDTO SimpleJsonParser::parseCreateAlertRuleReq
         json j = json::parse(jsonStr);
         
         application::CreateAlertRuleRequestDTO dto;
-        dto.ruleName = j["ruleName"].get<std::string>();
-        dto.metricName = j["metricName"].get<std::string>();
-        dto.threshold = j["threshold"].get<double>();
-        dto.operator_ = j["operator"].get<std::string>();
-        dto.durationSeconds = j["durationSeconds"].get<int32_t>();
+        dto.alert_name = j["alert_name"].get<std::string>();
+        dto.alert_type = j.value("alert_type", "");
+        dto.description = j.value("description", "");
+        dto.enabled = j.value("enabled", true);
         dto.severity = j["severity"].get<std::string>();
-        dto.isEnabled = j.value("isEnabled", true);  // 默认为true
-        dto.description = j.value("description", ""); // 默认为空字符串
+        dto.summary = j.value("summary", "");
         
-        return dto;
+        // 解析表达式
+        if (j.contains("expression") && j["expression"].is_object()) {
+            json expression = j["expression"];
+            
+            // 解析逻辑关系
+            dto.expression.logic = expression.value("logic", "AND");
+            dto.expression.stable = expression.value("stable", "");
+            
+            // 解析条件数组
+            if (expression.contains("conditions") && expression["conditions"].is_array()) {
+                for (const auto& conditionJson : expression["conditions"]) {
+                    application::AlertCondition condition;
+                    condition.metric = conditionJson["metric"].get<std::string>();
+                    condition.operator_ = conditionJson["operator"].get<std::string>();
+                    condition.threshold = conditionJson["threshold"].get<double>();
+                    condition.duration = conditionJson["duration"].get<std::string>();
+                    
+                    // 解析条件级标签（可选）
+                    if (conditionJson.contains("tags") && conditionJson["tags"].is_object()) {
+                        json conditionTags = conditionJson["tags"];
+                        for (auto& tag : conditionTags.items()) {
+                            condition.tags[tag.key()] = tag.value().get<std::string>();
+                        }
+                    }
+                    
+                    dto.expression.conditions.push_back(condition);
+                }
+            }
+            
+            // 解析表达式级全局标签（可选）
+            if (expression.contains("tags") && expression["tags"].is_object()) {
+                json globalTags = expression["tags"];
+                for (auto& tag : globalTags.items()) {
+                    dto.expression.tags[tag.key()] = tag.value().get<std::string>();
+                }
+            }
+    }
+
+    return dto;
     } catch (const std::exception& e) {
         std::cerr << "Error parsing create alert rule request: " << e.what() << std::endl;
         throw std::runtime_error("Invalid JSON format for create alert rule request");
@@ -134,14 +170,50 @@ application::UpdateAlertRuleRequestDTO SimpleJsonParser::parseUpdateAlertRuleReq
         json j = json::parse(jsonStr);
         
         application::UpdateAlertRuleRequestDTO dto;
-        dto.ruleName = j.value("ruleName", "");
-        dto.metricName = j.value("metricName", "");
-        dto.threshold = j.value("threshold", 0.0);
-        dto.operator_ = j.value("operator", "");
-        dto.durationSeconds = j.value("durationSeconds", 0);
-        dto.severity = j.value("severity", "");
-        dto.isEnabled = j.value("isEnabled", true);
+        dto.alert_name = j.value("alert_name", "");
+        dto.alert_type = j.value("alert_type", "");
         dto.description = j.value("description", "");
+        dto.enabled = j.value("enabled", true);
+        dto.severity = j.value("severity", "");
+        dto.summary = j.value("summary", "");
+        
+        // 解析表达式
+        if (j.contains("expression") && j["expression"].is_object()) {
+            json expression = j["expression"];
+            
+            // 解析逻辑关系
+            dto.expression.logic = expression.value("logic", "AND");
+            dto.expression.stable = expression.value("stable", "");
+            
+            // 解析条件数组
+            if (expression.contains("conditions") && expression["conditions"].is_array()) {
+                for (const auto& conditionJson : expression["conditions"]) {
+                    application::AlertCondition condition;
+                    condition.metric = conditionJson["metric"].get<std::string>();
+                    condition.operator_ = conditionJson["operator"].get<std::string>();
+                    condition.threshold = conditionJson["threshold"].get<double>();
+                    condition.duration = conditionJson["duration"].get<std::string>();
+                    
+                    // 解析条件级标签（可选）
+                    if (conditionJson.contains("tags") && conditionJson["tags"].is_object()) {
+                        json conditionTags = conditionJson["tags"];
+                        for (auto& tag : conditionTags.items()) {
+                            condition.tags[tag.key()] = tag.value().get<std::string>();
+                        }
+                    }
+                    
+                    dto.expression.conditions.push_back(condition);
+                }
+            }
+            
+            // 解析表达式级全局标签（可选）
+            if (expression.contains("tags") && expression["tags"].is_object()) {
+                json globalTags = expression["tags"];
+                for (auto& tag : globalTags.items()) {
+                    dto.expression.tags[tag.key()] = tag.value().get<std::string>();
+                }
+            }
+        }
 
     return dto;
     } catch (const std::exception& e) {
@@ -175,17 +247,52 @@ std::string SimpleJsonParser::serializeAlertRuleDetailResponse(const application
     
     json rule;
     rule["ruleId"] = dto.rule.ruleId;
-    rule["ruleName"] = dto.rule.ruleName;
-    rule["metricName"] = dto.rule.metricName;
-    rule["threshold"] = dto.rule.threshold;
-    rule["operator"] = dto.rule.operator_;
-    rule["durationSeconds"] = dto.rule.durationSeconds;
-    rule["severity"] = dto.rule.severity;
-    rule["isEnabled"] = dto.rule.isEnabled;
+    rule["alert_name"] = dto.rule.alert_name;
+    rule["alert_type"] = dto.rule.alert_type;
     rule["description"] = dto.rule.description;
+    rule["enabled"] = dto.rule.enabled;
+    rule["severity"] = dto.rule.severity;
+    rule["summary"] = dto.rule.summary;
     rule["createdAt"] = dto.rule.createdAt;
     rule["updatedAt"] = dto.rule.updatedAt;
     
+    // 序列化表达式
+    json expression;
+    expression["logic"] = dto.rule.expression.logic;
+    expression["stable"] = dto.rule.expression.stable;
+    
+    // 序列化条件数组
+    json conditions = json::array();
+    for (const auto& condition : dto.rule.expression.conditions) {
+        json conditionJson;
+        conditionJson["metric"] = condition.metric;
+        conditionJson["operator"] = condition.operator_;
+        conditionJson["threshold"] = condition.threshold;
+        conditionJson["duration"] = condition.duration;
+        
+        // 序列化条件级标签
+        if (!condition.tags.empty()) {
+            json conditionTags;
+            for (const auto& tag : condition.tags) {
+                conditionTags[tag.first] = tag.second;
+            }
+            conditionJson["tags"] = conditionTags;
+        }
+        
+        conditions.push_back(conditionJson);
+    }
+    expression["conditions"] = conditions;
+    
+    // 序列化全局标签
+    if (!dto.rule.expression.tags.empty()) {
+        json globalTags;
+        for (const auto& tag : dto.rule.expression.tags) {
+            globalTags[tag.first] = tag.second;
+        }
+        expression["tags"] = globalTags;
+    }
+    
+    rule["expression"] = expression;
     j["rule"] = rule;
     
     return j.dump();
@@ -201,17 +308,52 @@ std::string SimpleJsonParser::serializeAlertRuleListResponse(const application::
     for (const auto& rule : dto.rules) {
         json ruleJson;
         ruleJson["ruleId"] = rule.ruleId;
-        ruleJson["ruleName"] = rule.ruleName;
-        ruleJson["metricName"] = rule.metricName;
-        ruleJson["threshold"] = rule.threshold;
-        ruleJson["operator"] = rule.operator_;
-        ruleJson["durationSeconds"] = rule.durationSeconds;
-        ruleJson["severity"] = rule.severity;
-        ruleJson["isEnabled"] = rule.isEnabled;
+        ruleJson["alert_name"] = rule.alert_name;
+        ruleJson["alert_type"] = rule.alert_type;
         ruleJson["description"] = rule.description;
+        ruleJson["enabled"] = rule.enabled;
+        ruleJson["severity"] = rule.severity;
+        ruleJson["summary"] = rule.summary;
         ruleJson["createdAt"] = rule.createdAt;
         ruleJson["updatedAt"] = rule.updatedAt;
         
+        // 序列化表达式
+        json expression;
+        expression["logic"] = rule.expression.logic;
+        expression["stable"] = rule.expression.stable;
+        
+        // 序列化条件数组
+        json conditions = json::array();
+        for (const auto& condition : rule.expression.conditions) {
+            json conditionJson;
+            conditionJson["metric"] = condition.metric;
+            conditionJson["operator"] = condition.operator_;
+            conditionJson["threshold"] = condition.threshold;
+            conditionJson["duration"] = condition.duration;
+            
+            // 序列化条件级标签
+            if (!condition.tags.empty()) {
+                json conditionTags;
+                for (const auto& tag : condition.tags) {
+                    conditionTags[tag.first] = tag.second;
+                }
+                conditionJson["tags"] = conditionTags;
+            }
+            
+            conditions.push_back(conditionJson);
+        }
+        expression["conditions"] = conditions;
+        
+        // 序列化全局标签
+        if (!rule.expression.tags.empty()) {
+            json globalTags;
+            for (const auto& tag : rule.expression.tags) {
+                globalTags[tag.first] = tag.second;
+            }
+            expression["tags"] = globalTags;
+        }
+        
+        ruleJson["expression"] = expression;
         rules.push_back(ruleJson);
     }
     

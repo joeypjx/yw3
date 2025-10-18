@@ -9,6 +9,7 @@
 #include "infrastructure/repositories/mock_alert_rule_repository.hpp"
 #include "infrastructure/repositories/mock_alert_event_repository.hpp"
 #include "infrastructure/notifiers/mock_notification_service.hpp"
+#include "domain/services/alert_expression_evaluation_service.hpp"
 #include <iostream>
 #include <csignal>
 #include <memory>
@@ -102,17 +103,29 @@ int main(int argc, char* argv[]) {
 
     // 4. 添加示例告警规则
     std::cout << "  [4/6] Adding sample alert rules..." << std::endl;
-    domain::AlertRule cpuRule(1, "High CPU Usage", "cpu.usage_percent", 80.0, 
-                              domain::AlertRule::Operator::GREATER_THAN, 60, 
-                              domain::AlertRule::Severity::WARNING, true);
-    domain::AlertRule memoryRule(2, "High Memory Usage", "memory.usage_percent", 90.0, 
-                                 domain::AlertRule::Operator::GREATER_THAN, 120, 
-                                 domain::AlertRule::Severity::CRITICAL, true);
+    
+    // 创建CPU告警规则
+    domain::AlertExpression cpuExpression;
+    cpuExpression.conditions.push_back({
+        "cpu.usage_percent", ">", 80.0, "1m"
+    });
+    cpuExpression.logic = "AND";
+    
+    domain::AlertRule cpuRule(1, "High CPU Usage", cpuExpression, "WARNING", true, "CPU使用率告警");
+    
+    // 创建内存告警规则
+    domain::AlertExpression memoryExpression;
+    memoryExpression.conditions.push_back({
+        "memory.usage_percent", ">", 90.0, "2m"
+    });
+    memoryExpression.logic = "AND";
+    
+    domain::AlertRule memoryRule(2, "High Memory Usage", memoryExpression, "CRITICAL", true, "内存使用率告警");
     
     alertRuleRepository->save(cpuRule);
     alertRuleRepository->save(memoryRule);
-    std::cout << "    ✓ Added CPU usage rule (80% for 60s)" << std::endl;
-    std::cout << "    ✓ Added Memory usage rule (90% for 120s)" << std::endl;
+    std::cout << "    ✓ Added CPU usage rule (80% for 1m)" << std::endl;
+    std::cout << "    ✓ Added Memory usage rule (90% for 2m)" << std::endl;
 
     // 5. 启动告警服务
     std::cout << "  [5/6] Starting alerting service..." << std::endl;

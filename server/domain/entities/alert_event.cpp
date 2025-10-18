@@ -24,7 +24,7 @@ AlertEvent::AlertEvent(
     int64_t eventId,
     int32_t ruleId,
     const std::string& nodeId,
-    AlertRule::Severity severity,
+    const std::string& severity,
     double triggeredValue,
     const std::string& details
 )

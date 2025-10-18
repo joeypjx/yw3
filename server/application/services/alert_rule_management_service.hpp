@@ -6,6 +6,8 @@
 #include <memory>
 #include "../../domain/repositories/i_alert_rule_repository.hpp"
 #include "../dto/alert_rule_dto.hpp"
+#include "../../domain/services/alert_expression_evaluation_service.hpp"
+#include "../../common/id_generator.hpp"
 
 namespace monitoring::application {
 

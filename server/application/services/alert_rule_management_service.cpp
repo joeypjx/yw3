@@ -37,7 +37,7 @@ AlertRuleDetailResponseDTO AlertRuleManagementService::createAlertRule(const Cre
         response.message = "Alert rule created successfully";
         response.rule = toAlertRuleDTO(rule);
 
-        monitoring::utils::Logger::info("Created alert rule: " + std::to_string(ruleId) + " - " + request.ruleName);
+        monitoring::utils::Logger::info("Created alert rule: " + std::to_string(ruleId) + " - " + request.alert_name);
 
     } catch (const std::exception& e) {
         response.code = 500;
@@ -79,7 +79,7 @@ AlertRuleDetailResponseDTO AlertRuleManagementService::updateAlertRule(int32_t r
         response.message = "Alert rule updated successfully";
         response.rule = toAlertRuleDTO(rule);
 
-        monitoring::utils::Logger::info("Updated alert rule: " + std::to_string(ruleId) + " - " + request.ruleName);
+        monitoring::utils::Logger::info("Updated alert rule: " + std::to_string(ruleId) + " - " + request.alert_name);
 
     } catch (const std::exception& e) {
         response.code = 500;
@@ -192,15 +192,13 @@ CommonResponseDTO AlertRuleManagementService::enableAlertRule(int32_t ruleId) {
             response.message = "Alert rule not found";
             return response;
         }
-        std::cout << "[AlertRuleManagementService] Rule found: " << rule->getRuleName() << std::endl;
+        std::cout << "[AlertRuleManagementService] Rule found: " << rule->getAlertName() << std::endl;
 
         // 2. 启用规则
         std::cout << "[AlertRuleManagementService] Enabling rule..." << std::endl;
         rule->setEnabled(true);
         // 更新updatedAt时间戳
-        auto now = std::chrono::system_clock::now();
-        uint64_t timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-        rule->setUpdatedAt(timestamp);
+        // 注意：新的AlertRule会在setEnabled中自动更新时间戳
         std::cout << "[AlertRuleManagementService] Saving rule..." << std::endl;
         alertRuleRepository_->save(*rule);
 
@@ -235,9 +233,7 @@ CommonResponseDTO AlertRuleManagementService::disableAlertRule(int32_t ruleId) {
         // 2. 禁用规则
         rule->setEnabled(false);
         // 更新updatedAt时间戳
-        auto now = std::chrono::system_clock::now();
-        uint64_t timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-        rule->setUpdatedAt(timestamp);
+        // 注意：新的AlertRule会在setEnabled中自动更新时间戳
         alertRuleRepository_->save(*rule);
 
         // 3. 返回成功响应
@@ -286,16 +282,32 @@ AlertRuleListResponseDTO AlertRuleManagementService::getActiveAlertRules() {
 AlertRuleDTO AlertRuleManagementService::toAlertRuleDTO(const domain::AlertRule& rule) {
     AlertRuleDTO dto;
     dto.ruleId = rule.getRuleId();
-    dto.ruleName = rule.getRuleName();
-    dto.metricName = rule.getMetricName();
-    dto.threshold = rule.getThreshold();
-    dto.operator_ = domain::operatorToString(rule.getOperator());
-    dto.durationSeconds = rule.getDuration();
-    dto.severity = domain::severityToString(rule.getSeverity());
-    dto.isEnabled = rule.isEnabled();
+    dto.alert_name = rule.getAlertName();
+    dto.alert_type = rule.getAlertType();
     dto.description = rule.getDescription();
+    dto.enabled = rule.isEnabled();
+    dto.severity = rule.getSeverity();
+    dto.summary = rule.getSummary();
     dto.createdAt = rule.getCreatedAt();
     dto.updatedAt = rule.getUpdatedAt();
+    
+    // 转换表达式
+    const auto& domainExpression = rule.getExpression();
+    dto.expression.logic = domainExpression.logic;
+    dto.expression.stable = domainExpression.stable;
+    dto.expression.tags = domainExpression.tags;
+    
+    // 转换条件
+    for (const auto& domainCondition : domainExpression.conditions) {
+        AlertCondition appCondition;
+        appCondition.metric = domainCondition.metric;
+        appCondition.operator_ = domainCondition.operator_;
+        appCondition.threshold = domainCondition.threshold;
+        appCondition.duration = domainCondition.duration;
+        appCondition.tags = domainCondition.tags;
+        dto.expression.conditions.push_back(appCondition);
+    }
+    
     return dto;
 }
 
@@ -303,18 +315,32 @@ domain::AlertRule AlertRuleManagementService::toDomainAlertRule(const CreateAler
     auto now = std::chrono::system_clock::now();
     uint64_t timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
 
+    // 将应用层的AlertExpression转换为领域层的AlertExpression
+    domain::AlertExpression domainExpression;
+    domainExpression.logic = dto.expression.logic;
+    domainExpression.stable = dto.expression.stable;
+    domainExpression.tags = dto.expression.tags;
+    
+    // 转换条件
+    for (const auto& condition : dto.expression.conditions) {
+        domain::AlertCondition domainCondition;
+        domainCondition.metric = condition.metric;
+        domainCondition.operator_ = condition.operator_;
+        domainCondition.threshold = condition.threshold;
+        domainCondition.duration = condition.duration;
+        domainCondition.tags = condition.tags;
+        domainExpression.conditions.push_back(domainCondition);
+    }
+
     return domain::AlertRule(
         ruleId,
-        dto.ruleName,
-        dto.metricName,
-        dto.threshold,
-        domain::stringToOperator(dto.operator_),
-        dto.durationSeconds,
-        domain::stringToSeverity(dto.severity),
-        dto.isEnabled,
+        dto.alert_name,
+        domainExpression,
+        dto.severity,
+        dto.enabled,
         dto.description,
-        timestamp,
-        timestamp
+        dto.alert_type,
+        dto.summary
     );
 }
 
@@ -322,87 +348,114 @@ domain::AlertRule AlertRuleManagementService::toDomainAlertRule(const UpdateAler
     auto now = std::chrono::system_clock::now();
     uint64_t timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
 
+    // 将应用层的AlertExpression转换为领域层的AlertExpression
+    domain::AlertExpression domainExpression;
+    domainExpression.logic = dto.expression.logic;
+    domainExpression.stable = dto.expression.stable;
+    domainExpression.tags = dto.expression.tags;
+    
+    // 转换条件
+    for (const auto& condition : dto.expression.conditions) {
+        domain::AlertCondition domainCondition;
+        domainCondition.metric = condition.metric;
+        domainCondition.operator_ = condition.operator_;
+        domainCondition.threshold = condition.threshold;
+        domainCondition.duration = condition.duration;
+        domainCondition.tags = condition.tags;
+        domainExpression.conditions.push_back(domainCondition);
+    }
+
     return domain::AlertRule(
         ruleId,
-        dto.ruleName,
-        dto.metricName,
-        dto.threshold,
-        domain::stringToOperator(dto.operator_),
-        dto.durationSeconds,
-        domain::stringToSeverity(dto.severity),
-        dto.isEnabled,
+        dto.alert_name,
+        domainExpression,
+        dto.severity,
+        dto.enabled,
         dto.description,
-        0, // createdAt 保持不变
-        timestamp
+        dto.alert_type,
+        dto.summary
     );
 }
 
 bool AlertRuleManagementService::validateCreateRequest(const CreateAlertRuleRequestDTO& request, std::string& errorMessage) {
-    if (request.ruleName.empty()) {
-        errorMessage = "Rule name is required";
+    if (request.alert_name.empty()) {
+        errorMessage = "Alert name is required";
         return false;
     }
-    if (request.metricName.empty()) {
-        errorMessage = "Metric name is required";
+    if (request.expression.conditions.empty()) {
+        errorMessage = "At least one condition is required";
         return false;
     }
-    if (request.threshold < 0) {
-        errorMessage = "Threshold must be non-negative";
+    if (request.severity.empty()) {
+        errorMessage = "Severity is required";
         return false;
     }
-    if (request.durationSeconds <= 0) {
-        errorMessage = "Duration must be positive";
-        return false;
+    
+    // 验证每个条件
+    for (const auto& condition : request.expression.conditions) {
+        if (condition.metric.empty()) {
+            errorMessage = "Metric name is required for all conditions";
+            return false;
+        }
+        if (condition.threshold < 0) {
+            errorMessage = "Threshold must be non-negative for all conditions";
+            return false;
+        }
+        if (condition.duration.empty()) {
+            errorMessage = "Duration is required for all conditions";
+            return false;
+        }
+        if (condition.operator_ != ">" && condition.operator_ != "<" && condition.operator_ != "==" && 
+            condition.operator_ != ">=" && condition.operator_ != "<=" && condition.operator_ != "!=") {
+            errorMessage = "Invalid operator: " + condition.operator_;
+            return false;
+        }
     }
-    if (request.operator_ != ">" && request.operator_ != "<" && request.operator_ != "=" && 
-        request.operator_ != ">=" && request.operator_ != "<=") {
-        errorMessage = "Invalid operator";
-        return false;
-    }
-    if (request.severity != "WARNING" && request.severity != "CRITICAL") {
-        errorMessage = "Invalid severity";
-        return false;
-    }
+    
     return true;
 }
 
 bool AlertRuleManagementService::validateUpdateRequest(const UpdateAlertRuleRequestDTO& request, std::string& errorMessage) {
-    if (request.ruleName.empty()) {
-        errorMessage = "Rule name is required";
+    if (request.alert_name.empty()) {
+        errorMessage = "Alert name is required";
         return false;
     }
-    if (request.metricName.empty()) {
-        errorMessage = "Metric name is required";
+    if (request.expression.conditions.empty()) {
+        errorMessage = "At least one condition is required";
         return false;
     }
-    if (request.threshold < 0) {
-        errorMessage = "Threshold must be non-negative";
+    if (request.severity.empty()) {
+        errorMessage = "Severity is required";
         return false;
     }
-    if (request.durationSeconds <= 0) {
-        errorMessage = "Duration must be positive";
-        return false;
+    
+    // 验证每个条件
+    for (const auto& condition : request.expression.conditions) {
+        if (condition.metric.empty()) {
+            errorMessage = "Metric name is required for all conditions";
+            return false;
+        }
+        if (condition.threshold < 0) {
+            errorMessage = "Threshold must be non-negative for all conditions";
+            return false;
+        }
+        if (condition.duration.empty()) {
+            errorMessage = "Duration is required for all conditions";
+            return false;
+        }
+        if (condition.operator_ != ">" && condition.operator_ != "<" && condition.operator_ != "==" && 
+            condition.operator_ != ">=" && condition.operator_ != "<=" && condition.operator_ != "!=") {
+            errorMessage = "Invalid operator: " + condition.operator_;
+            return false;
+        }
     }
-    if (request.operator_ != ">" && request.operator_ != "<" && request.operator_ != "=" && 
-        request.operator_ != ">=" && request.operator_ != "<=") {
-        errorMessage = "Invalid operator";
-        return false;
-    }
-    if (request.severity != "WARNING" && request.severity != "CRITICAL") {
-        errorMessage = "Invalid severity";
-        return false;
-    }
+    
     return true;
 }
 
 int32_t AlertRuleManagementService::generateNextRuleId() {
-    // 简单实现：获取所有规则，找到最大ID + 1
-    auto allRules = alertRuleRepository_->findAll();
-    int32_t maxId = 0;
-    for (const auto& rule : allRules) {
-        maxId = std::max(maxId, rule.getRuleId());
-    }
-    return maxId + 1;
+    // 使用线程安全的ID生成器
+    return common::IdGenerator::getInstance().nextAlertRuleId();
 }
 
 } // namespace monitoring::application

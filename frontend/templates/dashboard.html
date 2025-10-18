@@ -322,19 +322,32 @@
             
             let html = '';
             rulesData.rules.forEach(rule => {
-                const statusBadge = rule.isEnabled ? 
+                const statusBadge = rule.enabled ? 
                     '<span class="badge bg-success">启用</span>' : 
                     '<span class="badge bg-secondary">禁用</span>';
                 
                 const severityClass = rule.severity === 'CRITICAL' ? 'severity-critical' : 'severity-warning';
+                
+                // 处理多条件规则
+                let conditionsText = '';
+                if (rule.expression && rule.expression.conditions) {
+                    const conditions = rule.expression.conditions.map(condition => 
+                        `${condition.metric} ${condition.operator} ${condition.threshold}`
+                    ).join(` ${rule.expression.logic} `);
+                    conditionsText = conditions;
+                } else {
+                    // 兼容旧格式
+                    conditionsText = `${rule.metricName || ''} ${rule.operator || ''} ${rule.threshold || ''}`;
+                }
                 
                 html += `
                     <div class="card mb-2">
                         <div class="card-body py-2">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <h6 class="mb-1">${rule.ruleName}</h6>
-                                    <small class="text-muted">${rule.metricName} ${rule.operator} ${rule.threshold}</small>
+                                    <h6 class="mb-1">${rule.alert_name || rule.ruleName || 'Unknown Rule'}</h6>
+                                    <small class="text-muted">${conditionsText}</small>
+                                    ${rule.description ? `<br><small class="text-info">${rule.description}</small>` : ''}
                                 </div>
                                 <div class="text-end">
                                     ${statusBadge}

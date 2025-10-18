@@ -43,7 +43,7 @@ public:
     int32_t getRuleId() const { return ruleId_; }
     const std::string& getNodeId() const { return nodeId_; }
     Status getStatus() const { return status_; }
-    AlertRule::Severity getSeverity() const { return severity_; }
+    std::string getSeverity() const { return severity_; }
     uint64_t getStartAt() const { return startAt_; }
     uint64_t getEndAt() const { return endAt_; }
     double getTriggeredValue() const { return triggeredValue_; }
@@ -80,7 +80,7 @@ private:
         int64_t eventId,
         int32_t ruleId,
         const std::string& nodeId,
-        AlertRule::Severity severity,
+        const std::string& severity,
         double triggeredValue,
         const std::string& details
     );
@@ -89,7 +89,7 @@ private:
     int32_t ruleId_;                // 关联的规则ID
     std::string nodeId_;            // 关联的节点ID
     Status status_;                 // 当前状态
-    AlertRule::Severity severity_;  // 严重等级（规则的快照）
+    std::string severity_;  // 严重等级（规则的快照）
 
     uint64_t startAt_;              // 告警开始时间
     uint64_t endAt_;                // 告警结束时间（0表示未结束）

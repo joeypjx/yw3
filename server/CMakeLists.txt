@@ -14,6 +14,7 @@ set(SERVER_SOURCES
     domain/entities/metric_snapshot.cpp
     domain/entities/alert_rule.cpp
     domain/entities/alert_event.cpp
+    domain/services/alert_expression_evaluation_service.cpp
 
     # Application Layer
     application/services/ingestion_service.cpp

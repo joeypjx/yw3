@@ -22,6 +22,9 @@ yw3/
 │   ├── presentation/           # 接口/表现层
 │   │   ├── controllers/        # HTTP控制器
 │   │   └── api/                # API路由定义
+│   ├── common/                 # 通用工具
+│   │   ├── id_generator.hpp   # ID生成器
+│   │   └── time_utils.hpp     # 时间工具
 │   ├── main.cpp               # 服务端入口 (组合根)
 │   └── CMakeLists.txt
 │
@@ -34,11 +37,43 @@ yw3/
 │   ├── agent_main.cpp         # 代理入口
 │   └── CMakeLists.txt
 │
-├── tests/                      # 测试目录
-├── docs/                       # 文档
+├── frontend/                   # Web前端
+│   ├── monitoring_dashboard.py # Flask应用
+│   ├── templates/              # HTML模板
+│   ├── requirements.txt        # Python依赖
+│   ├── start_frontend.sh      # 前端启动脚本
+│   └── README.md
+│
+├── scripts/                    # 脚本文件
+│   ├── build_all.sh           # 统一编译脚本
+│   ├── start_full_system.sh   # 完整系统启动脚本
+│   └── cleanup_processes.sh   # 进程清理脚本
+│
 ├── config/                     # 配置文件
-├── CMakeLists.txt             # 根构建配置
-└── README.md
+│   ├── node.yaml              # 节点配置
+│   └── resource.yaml         # 资源配置
+│
+├── docs/                       # 项目文档
+│   ├── ALERT_EVENTS_API.md    # 告警事件API文档
+│   ├── ANALYSIS_SUMMARY.txt   # 分析总结
+│   ├── agent_api_verification.md
+│   ├── data_conversion_flow.md
+│   ├── dual_tags_usage.md     # 双标签使用说明
+│   ├── extended_metrics_documentation.md
+│   ├── 快速参考指南.md
+│   ├── 系统架构详解.md
+│   ├── 项目结构分析.md
+│   ├── 初始设计.md
+│   └── README.md
+│
+├── tests/                      # 测试文件
+├── build/                      # 编译输出目录
+├── logs/                       # 日志文件目录
+├── CMakeLists.txt             # 根CMake配置
+├── start.sh                   # 项目启动脚本（快捷方式）
+├── build.sh                   # 项目编译脚本（快捷方式）
+├── cleanup.sh                 # 项目清理脚本（快捷方式）
+└── README.md                  # 项目说明
 ```
 
 ## 核心组件
@@ -55,34 +90,49 @@ yw3/
 - **Reporter**: HTTP上报
 - **Scheduler**: 定时调度
 
-## 构建
+## 快速开始
 
-### 统一编译（推荐）
-
-```bash
-# 编译Server和Agent到统一目录
-./build_all.sh
-```
-
-编译完成后，可执行文件位于 `build/` 目录：
-- `build/monitoring_server` - 监控服务端
-- `build/monitoring_agent` - 监控代理
-
-### 使用方法
+### 1. 编译项目
 
 ```bash
-# 启动Server（默认端口18888）
-./build/monitoring_server [port]
+# 使用快捷脚本编译
+./build.sh
 
-# 启动Agent
-./build/monitoring_agent [server_host] [server_port]
-
-# 示例
-./build/monitoring_server 18888
-./build/monitoring_agent localhost 18888
+# 或者使用完整路径
+./scripts/build_all.sh
 ```
 
-### 系统测试
+### 2. 启动完整系统
+
+```bash
+# 使用快捷脚本启动（推荐）
+./start.sh
+
+# 或者使用完整路径
+./scripts/start_full_system.sh
+```
+
+这将启动：
+- 监控服务器（端口18888）
+- 监控代理
+- Web前端（端口5001）
+
+### 3. 访问系统
+
+- **Web前端**: http://localhost:5001
+- **API接口**: http://localhost:18888/api/
+
+### 4. 清理进程
+
+```bash
+# 使用快捷脚本清理
+./cleanup.sh
+
+# 或者使用完整路径
+./scripts/cleanup_processes.sh
+```
+
+## 系统测试
 
 ```bash
 # 运行系统测试

@@ -64,6 +64,7 @@ private:
     
     // 告警规则管理API处理函数
     void handleCreateAlertRule(const std::string& body, std::string& response, int& statusCode);
+    void handleCreateMultiConditionAlertRule(const std::string& body, std::string& response, int& statusCode);
     void handleUpdateAlertRule(int32_t ruleId, const std::string& body, std::string& response, int& statusCode);
     void handleDeleteAlertRule(int32_t ruleId, std::string& response, int& statusCode);
     void handleGetAlertRules(std::string& response, int& statusCode);
