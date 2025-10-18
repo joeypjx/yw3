@@ -9,7 +9,7 @@ namespace monitoring::domain {
 AlertEvaluationResult AlertExpressionEvaluationService::evaluate(
     const AlertExpression& expression,
     const MetricSnapshot& metrics,
-    const std::string& nodeId
+    const ServerNode& node
 ) {
     AlertEvaluationResult result;
     result.triggered = false;
@@ -26,7 +26,7 @@ AlertEvaluationResult AlertExpressionEvaluationService::evaluate(
     
     // 评估每个条件
     for (const auto& condition : expression.conditions) {
-        bool conditionResult = evaluateCondition(condition, metrics, expression.tags);
+        bool conditionResult = evaluateCondition(condition, metrics, expression.tags, node);
         conditionResults.push_back(conditionResult);
         
         // 获取条件对应的指标值
@@ -85,7 +85,8 @@ AlertEvaluationResult AlertExpressionEvaluationService::evaluate(
 bool AlertExpressionEvaluationService::evaluateCondition(
     const AlertCondition& condition,
     const MetricSnapshot& metrics,
-    const std::map<std::string, std::string>& globalTags
+    const std::map<std::string, std::string>& globalTags,
+    const ServerNode& node
 ) {
     try {
         // 确定使用哪个标签集合：条件级标签优先，否则使用全局标签
@@ -98,7 +99,7 @@ bool AlertExpressionEvaluationService::evaluateCondition(
         
         // 检查标签匹配（如果有标签的话）
         if (!tagsToUse.empty()) {
-            if (!matchTags(tagsToUse, metrics)) {
+            if (!matchTags(tagsToUse, metrics, node)) {
                 return false;
             }
         }
@@ -117,18 +118,147 @@ bool AlertExpressionEvaluationService::evaluateCondition(
 
 bool AlertExpressionEvaluationService::matchTags(
     const std::map<std::string, std::string>& tags,
-    const MetricSnapshot& metrics
+    const MetricSnapshot& metrics,
+    const ServerNode& node
 ) {
-    // 目前简化实现：检查节点ID是否匹配
-    // 在实际应用中，这里应该检查更多的标签信息
+    // 增强的标签匹配实现：支持多种标签类型
     for (const auto& tag : tags) {
-        if (tag.first == "node_id") {
-            if (metrics.getNodeId() != tag.second) {
+        const std::string& key = tag.first;
+        const std::string& expectedValue = tag.second;
+        
+        // 节点ID匹配
+        if (key == "node_id") {
+            if (metrics.getNodeId() != expectedValue) {
                 return false;
             }
         }
-        // 可以添加更多标签匹配逻辑
+        // 主机IP地址匹配
+        else if (key == "host_ip") {
+            if (node.getIpAddress() != expectedValue) {
+                return false;
+            }
+        }
+        // 主机名匹配
+        else if (key == "hostname") {
+            if (node.getHostname() != expectedValue) {
+                return false;
+            }
+        }
+        // 机箱ID匹配
+        else if (key == "box_id") {
+            try {
+                int32_t expectedBoxId = std::stoi(expectedValue);
+                if (node.getHardwareInfo().boxId != expectedBoxId) {
+                    return false;
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "[AlertExpressionEvaluationService] Invalid box_id value: " << expectedValue << std::endl;
+                return false;
+            }
+        }
+        // 槽位ID匹配
+        else if (key == "slot_id") {
+            try {
+                int32_t expectedSlotId = std::stoi(expectedValue);
+                if (node.getHardwareInfo().slotId != expectedSlotId) {
+                    return false;
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "[AlertExpressionEvaluationService] Invalid slot_id value: " << expectedValue << std::endl;
+                return false;
+            }
+        }
+        // CPU ID匹配
+        else if (key == "cpu_id") {
+            try {
+                int32_t expectedCpuId = std::stoi(expectedValue);
+                if (node.getHardwareInfo().cpuId != expectedCpuId) {
+                    return false;
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "[AlertExpressionEvaluationService] Invalid cpu_id value: " << expectedValue << std::endl;
+                return false;
+            }
+        }
+        // SRIO ID匹配
+        else if (key == "srio_id") {
+            try {
+                int32_t expectedSrioId = std::stoi(expectedValue);
+                if (node.getHardwareInfo().srioId != expectedSrioId) {
+                    return false;
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "[AlertExpressionEvaluationService] Invalid srio_id value: " << expectedValue << std::endl;
+                return false;
+            }
+        }
+        // 服务端口匹配
+        else if (key == "service_port") {
+            try {
+                uint16_t expectedPort = static_cast<uint16_t>(std::stoi(expectedValue));
+                if (node.getHardwareInfo().servicePort != expectedPort) {
+                    return false;
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "[AlertExpressionEvaluationService] Invalid service_port value: " << expectedValue << std::endl;
+                return false;
+            }
+        }
+        // 机箱类型匹配
+        else if (key == "box_type") {
+            if (node.getHardwareInfo().boxType != expectedValue) {
+                return false;
+            }
+        }
+        // 板卡类型匹配
+        else if (key == "board_type") {
+            if (node.getHardwareInfo().boardType != expectedValue) {
+                return false;
+            }
+        }
+        // CPU类型匹配
+        else if (key == "cpu_type") {
+            if (node.getHardwareInfo().cpuType != expectedValue) {
+                return false;
+            }
+        }
+        // 操作系统类型匹配
+        else if (key == "os_type") {
+            if (node.getHardwareInfo().osType != expectedValue) {
+                return false;
+            }
+        }
+        // 资源类型匹配
+        else if (key == "resource_type") {
+            if (node.getHardwareInfo().resourceType != expectedValue) {
+                return false;
+            }
+        }
+        // CPU架构匹配
+        else if (key == "cpu_arch") {
+            if (node.getHardwareInfo().cpuArch != expectedValue) {
+                return false;
+            }
+        }
+        // GPU数量匹配
+        else if (key == "gpu_count") {
+            try {
+                int32_t expectedGpuCount = std::stoi(expectedValue);
+                if (static_cast<int32_t>(node.getHardwareInfo().gpus.size()) != expectedGpuCount) {
+                    return false;
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "[AlertExpressionEvaluationService] Invalid gpu_count value: " << expectedValue << std::endl;
+                return false;
+            }
+        }
+        // 未知标签类型
+        else {
+            std::cerr << "[AlertExpressionEvaluationService] Unknown tag type: " << key << std::endl;
+            return false;
+        }
     }
+    
     return true;
 }
 

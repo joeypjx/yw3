@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include "../entities/metric_snapshot.hpp"
+#include "../entities/server_node.hpp"
 
 namespace monitoring::domain {
 
@@ -25,7 +26,6 @@ struct AlertCondition {
 struct AlertExpression {
     std::vector<AlertCondition> conditions;  // 条件数组
     std::string logic;                      // 逻辑关系: "AND", "OR"
-    std::string stable;                     // 数据域: "node", "component" 等（可选）
     std::map<std::string, std::string> tags; // 全局标签（可选）
 };
 
@@ -53,13 +53,13 @@ public:
      * 
      * @param expression 告警表达式
      * @param metrics 指标快照
-     * @param nodeId 节点ID
+     * @param node 服务器节点（包含完整的节点信息）
      * @return 评估结果
      */
     static AlertEvaluationResult evaluate(
         const AlertExpression& expression,
         const MetricSnapshot& metrics,
-        const std::string& nodeId
+        const ServerNode& node
     );
 
 private:
@@ -69,12 +69,14 @@ private:
      * @param condition 告警条件
      * @param metrics 指标快照
      * @param globalTags 全局标签（当条件没有自己的标签时使用）
+     * @param node 服务器节点（包含完整的节点信息）
      * @return 是否满足条件
      */
     static bool evaluateCondition(
         const AlertCondition& condition,
         const MetricSnapshot& metrics,
-        const std::map<std::string, std::string>& globalTags
+        const std::map<std::string, std::string>& globalTags,
+        const ServerNode& node
     );
 
     /**
@@ -82,11 +84,13 @@ private:
      *
      * @param tags 条件标签
      * @param metrics 指标快照
+     * @param node 服务器节点（包含完整的节点信息）
      * @return 是否匹配
      */
     static bool matchTags(
         const std::map<std::string, std::string>& tags,
-        const MetricSnapshot& metrics
+        const MetricSnapshot& metrics,
+        const ServerNode& node
     );
 
     /**

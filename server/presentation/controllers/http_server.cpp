@@ -69,8 +69,8 @@ void HttpServer::setupRoutes() {
 
     // ============ 告警规则管理API ============
     
-    // POST /api/alarm/rules - 创建告警规则（多条件）
-    svr->Post("/api/alarm/rules", [this](const httplib::Request& req, httplib::Response& res) {
+    // POST /api/alert-rules - 创建告警规则
+    svr->Post("/api/alert-rules", [this](const httplib::Request& req, httplib::Response& res) {
         std::cout << "[AlertRule] Create request from " << req.remote_addr << std::endl;
         
         std::string responseBody;

@@ -11,6 +11,8 @@
 #include "../../domain/entities/alert_rule.hpp"
 #include "../../domain/entities/alert_event.hpp"
 #include <chrono>
+#include <iomanip>
+#include <sstream>
 
 namespace monitoring::application {
 
@@ -279,58 +281,207 @@ public:
         return dto;
     }
 
-    /**
-     * 从AlertEvent领域对象转换为AlertEventDTO
-     */
-    static AlertEventDTO toAlertEventDTO(const domain::AlertEvent& event) {
-        AlertEventDTO dto;
-        dto.eventId = event.getEventId();
-        dto.ruleId = event.getRuleId();
-        dto.nodeId = event.getNodeId();
-        dto.status = domain::alertStatusToString(event.getStatus());
-        dto.severity = event.getSeverity();
-        dto.startAt = event.getStartAt();
-        dto.endAt = event.getEndAt();
-        dto.triggeredValue = event.getTriggeredValue();
-        dto.details = event.getDetails();
-        dto.acknowledgedBy = event.getAcknowledgedBy();
-        dto.acknowledgedAt = event.getAcknowledgedAt();
-        return dto;
-    }
 
     /**
      * 从AlertRule领域对象转换为AlertRuleDTO
      */
     static AlertRuleDTO toAlertRuleDTO(const domain::AlertRule& rule) {
         AlertRuleDTO dto;
-        dto.ruleId = rule.getRuleId();
+        dto.id = std::to_string(rule.getRuleId());
         dto.alert_name = rule.getAlertName();
         dto.alert_type = rule.getAlertType();
+        dto.created_at = timestampToString(rule.getCreatedAt());
         dto.description = rule.getDescription();
         dto.enabled = rule.isEnabled();
         dto.severity = rule.getSeverity();
         dto.summary = rule.getSummary();
-        dto.createdAt = rule.getCreatedAt();
-        dto.updatedAt = rule.getUpdatedAt();
+        dto.updated_at = timestampToString(rule.getUpdatedAt());
         
         // 转换表达式
         const auto& domainExpression = rule.getExpression();
-        dto.expression.logic = domainExpression.logic;
-        dto.expression.stable = domainExpression.stable;
-        dto.expression.tags = domainExpression.tags;
+        
+        // 转换标签
+        for (const auto& tag : domainExpression.tags) {
+            TagPair tagPair;
+            tagPair.key = tag.first;
+            tagPair.value = tag.second;
+            dto.expression.tags.push_back(tagPair);
+        }
         
         // 转换条件
         for (const auto& domainCondition : domainExpression.conditions) {
             AlertCondition appCondition;
-            appCondition.metric = domainCondition.metric;
             appCondition.operator_ = domainCondition.operator_;
             appCondition.threshold = domainCondition.threshold;
-            appCondition.duration = domainCondition.duration;
-            appCondition.tags = domainCondition.tags;
             dto.expression.conditions.push_back(appCondition);
+            
+            // 从完整指标名中提取stable和metric部分
+            if (dto.expression.metric.empty()) {
+                std::string fullMetric = domainCondition.metric;
+                size_t dotPos = fullMetric.find('.');
+                if (dotPos != std::string::npos) {
+                    dto.expression.stable = fullMetric.substr(0, dotPos);
+                    dto.expression.metric = fullMetric.substr(dotPos + 1);
+                } else {
+                    // 如果没有点分隔符，说明是旧格式，metric就是完整指标名
+                    dto.expression.stable = "";
+                    dto.expression.metric = fullMetric;
+                }
+            }
+        }
+        
+        // 设置for字段（从条件中提取duration）
+        if (!domainExpression.conditions.empty()) {
+            dto.for_ = domainExpression.conditions[0].duration;
         }
         
         return dto;
+    }
+
+    /**
+     * 从CreateAlertRuleRequestDTO转换为AlertRule领域对象
+     */
+    static domain::AlertRule toAlertRule(const CreateAlertRuleRequestDTO& dto, int32_t ruleId) {
+        // 将应用层的AlertExpression转换为领域层的AlertExpression
+        domain::AlertExpression domainExpression;
+        domainExpression.logic = "AND"; // 默认逻辑关系为AND
+        
+        // 转换标签
+        for (const auto& tag : dto.expression.tags) {
+            domainExpression.tags[tag.key] = tag.value;
+        }
+        
+        // 转换条件
+        for (const auto& condition : dto.expression.conditions) {
+            domain::AlertCondition domainCondition;
+            // 按照设计：stable.metric 组合成完整指标名
+            domainCondition.metric = dto.expression.stable + "." + dto.expression.metric;
+            domainCondition.operator_ = condition.operator_;
+            domainCondition.threshold = condition.threshold;
+            domainCondition.duration = dto.for_; // 使用DTO外层的for字段
+            domainCondition.tags = {}; // 条件级别的标签为空
+            domainExpression.conditions.push_back(domainCondition);
+        }
+
+        return domain::AlertRule(
+            ruleId,
+            dto.alert_name,
+            domainExpression,
+            dto.severity,
+            dto.enabled,
+            dto.description,
+            dto.alert_type,
+            dto.summary
+        );
+    }
+
+    /**
+     * 从UpdateAlertRuleRequestDTO转换为AlertRule领域对象
+     */
+    static domain::AlertRule toAlertRule(const UpdateAlertRuleRequestDTO& dto, int32_t ruleId) {
+        // 将应用层的AlertExpression转换为领域层的AlertExpression
+        domain::AlertExpression domainExpression;
+        domainExpression.logic = "AND"; // 默认逻辑关系为AND
+        
+        // 转换标签
+        for (const auto& tag : dto.expression.tags) {
+            domainExpression.tags[tag.key] = tag.value;
+        }
+        
+        // 转换条件
+        for (const auto& condition : dto.expression.conditions) {
+            domain::AlertCondition domainCondition;
+            // 按照设计：stable.metric 组合成完整指标名
+            domainCondition.metric = dto.expression.stable + "." + dto.expression.metric;
+            domainCondition.operator_ = condition.operator_;
+            domainCondition.threshold = condition.threshold;
+            domainCondition.duration = dto.for_; // 使用DTO外层的for字段
+            domainCondition.tags = {}; // 条件级别的标签为空
+            domainExpression.conditions.push_back(domainCondition);
+        }
+
+        return domain::AlertRule(
+            ruleId,
+            dto.alert_name,
+            domainExpression,
+            dto.severity,
+            dto.enabled,
+            dto.description,
+            dto.alert_type,
+            dto.summary
+        );
+    }
+
+    // ============ AlertEvent 转换方法 ============
+
+    /**
+     * 领域模型转AlertEventDTO
+     */
+    static AlertEventDTO toAlertEventDTO(const domain::AlertEvent& event) {
+        AlertEventDTO dto;
+        
+        // 基本信息
+        dto.id = std::to_string(event.getEventId());
+        dto.status = alertStatusToString(event.getStatus());
+        dto.fingerprint = std::to_string(event.getRuleId()) + "," + event.getNodeId();
+        
+        // 时间字段
+        dto.created_at = timestampToString(event.getStartAt());
+        dto.starts_at = timestampToString(event.getStartAt());
+        dto.updated_at = timestampToString(event.getEndAt() > 0 ? event.getEndAt() : event.getStartAt());
+        dto.ends_at = event.getEndAt() > 0 ? timestampToString(event.getEndAt()) : "";
+        
+        // 注释
+        dto.annotations.description = event.getDetails();
+        dto.annotations.summary = event.getSummary();
+        
+        // 标签
+        dto.labels.alertname = event.getAlertName();
+        dto.labels.alert_type = event.getAlertType();
+        dto.labels.host_ip = event.getNodeIpAddress();  // 使用节点IP地址快照
+        dto.labels.metrics = ""; // 从事件表达式中获取
+        dto.labels.severity = event.getSeverity();
+        dto.labels.value = std::to_string(event.getTriggeredValue());
+        
+        // 从表达式中提取指标信息
+        if (!event.getExpression().conditions.empty()) {
+            dto.labels.metrics = event.getExpression().conditions[0].metric;
+        }
+        
+        return dto;
+    }
+
+    /**
+     * 领域模型转AlertEventDTO（带规则和节点信息）
+     */
+    static AlertEventDTO toAlertEventDTO(
+        const domain::AlertEvent& event,
+        const domain::AlertRule& rule,
+        const domain::ServerNode& node
+    ) {
+        AlertEventDTO dto = toAlertEventDTO(event);
+        
+        // 补充节点信息
+        dto.labels.host_ip = node.getIpAddress();
+        
+        // 补充指标信息
+        if (!event.getExpression().conditions.empty()) {
+            dto.labels.metrics = event.getExpression().conditions[0].metric;
+        }
+        
+        return dto;
+    }
+
+    /**
+     * 告警状态转字符串
+     */
+    static std::string alertStatusToString(domain::AlertEvent::Status status) {
+        switch (status) {
+            case domain::AlertEvent::Status::FIRING:       return "firing";
+            case domain::AlertEvent::Status::ACKNOWLEDGED: return "acknowledged";
+            case domain::AlertEvent::Status::RESOLVED:     return "resolved";
+            default: return "unknown";
+        }
     }
 
 private:
@@ -345,6 +496,18 @@ private:
     }
 
     /**
+     * 将Unix时间戳转换为ISO 8601格式字符串
+     */
+    static std::string timestampToString(uint64_t timestamp) {
+        auto time_point = std::chrono::system_clock::from_time_t(timestamp);
+        auto time_t = std::chrono::system_clock::to_time_t(time_point);
+        
+        std::ostringstream oss;
+        oss << std::put_time(std::gmtime(&time_t), "%Y-%m-%dT%H:%M:%SZ");
+        return oss.str();
+    }
+
+    /**
      * 字符串转ComponentState枚举
      */
     static domain::ComponentMetrics::State stringToComponentState(const std::string& str) {
@@ -355,6 +518,7 @@ private:
         if (str == "SLEEPING") return domain::ComponentMetrics::State::SLEEPING;
         return domain::ComponentMetrics::State::PENDING;
     }
+
 };
 
 } // namespace monitoring::application

@@ -50,6 +50,16 @@ public:
     const std::string& getDetails() const { return details_; }
     const std::string& getAcknowledgedBy() const { return acknowledgedBy_; }
     uint64_t getAcknowledgedAt() const { return acknowledgedAt_; }
+    
+    // 来自AlertRule的快照字段
+    const std::string& getAlertName() const { return alertName_; }
+    const std::string& getDescription() const { return description_; }
+    const std::string& getSummary() const { return summary_; }
+    const std::string& getAlertType() const { return alertType_; }
+    const AlertExpression& getExpression() const { return expression_; }
+    
+    // 来自ServerNode的快照字段
+    const std::string& getNodeIpAddress() const { return nodeIpAddress_; }
 
     /**
      * 业务行为：认知告警
@@ -82,14 +92,20 @@ private:
         const std::string& nodeId,
         const std::string& severity,
         double triggeredValue,
-        const std::string& details
+        const std::string& details,
+        const std::string& alertName,
+        const std::string& description,
+        const std::string& summary,
+        const std::string& alertType,
+        const AlertExpression& expression,
+        const std::string& nodeIpAddress
     );
 
     int64_t eventId_;               // 事件ID（主键）
     int32_t ruleId_;                // 关联的规则ID
     std::string nodeId_;            // 关联的节点ID
     Status status_;                 // 当前状态
-    std::string severity_;  // 严重等级（规则的快照）
+    std::string severity_;          // 严重等级（规则的快照）
 
     uint64_t startAt_;              // 告警开始时间
     uint64_t endAt_;                // 告警结束时间（0表示未结束）
@@ -99,6 +115,16 @@ private:
 
     std::string acknowledgedBy_;    // 认知操作员ID
     uint64_t acknowledgedAt_;       // 认知时间（0表示未认知）
+    
+    // 来自AlertRule的快照字段
+    std::string alertName_;        // 告警名称（规则快照）
+    std::string description_;      // 描述（规则快照）
+    std::string summary_;          // 摘要（规则快照）
+    std::string alertType_;        // 告警类型（规则快照）
+    AlertExpression expression_;   // 表达式（规则快照）
+    
+    // 来自ServerNode的快照字段
+    std::string nodeIpAddress_;    // 节点IP地址（节点快照）
 
     // 获取当前Unix时间戳（秒）
     static uint64_t getCurrentTimestamp();

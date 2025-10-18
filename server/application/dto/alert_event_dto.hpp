@@ -4,24 +4,43 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <map>
 
 namespace monitoring::application {
+
+/**
+ * AlertEventAnnotations - 告警事件注释
+ */
+struct AlertEventAnnotations {
+    std::string description;               // 描述
+    std::string summary;                   // 摘要
+};
+
+/**
+ * AlertEventLabels - 告警事件标签
+ */
+struct AlertEventLabels {
+    std::string alert_type;                // 告警类型
+    std::string alertname;                 // 告警名称
+    std::string host_ip;                   // 主机IP
+    std::string metrics;                   // 指标名称
+    std::string severity;                  // 严重等级
+    std::string value;                     // 触发值
+};
 
 /**
  * AlertEventDTO - 告警事件数据传输对象
  */
 struct AlertEventDTO {
-    int64_t eventId;                    // 事件ID
-    int32_t ruleId;                     // 规则ID
-    std::string nodeId;                 // 节点ID
-    std::string status;                 // 状态：FIRING, ACKNOWLEDGED, RESOLVED
-    std::string severity;               // 严重等级：WARNING, CRITICAL
-    uint64_t startAt;                   // 开始时间
-    uint64_t endAt;                     // 结束时间（0表示未结束）
-    double triggeredValue;              // 触发时的指标值
-    std::string details;                // 详细描述
-    std::string acknowledgedBy;         // 认知操作员ID
-    uint64_t acknowledgedAt;            // 认知时间（0表示未认知）
+    AlertEventAnnotations annotations;     // 注释
+    std::string created_at;                // 创建时间 (YYYY-MM-DD HH:MM:SS)
+    std::string ends_at;                   // 结束时间 (YYYY-MM-DD HH:MM:SS)
+    std::string fingerprint;               // 指纹 (ruleId,nodeId组合)
+    std::string id;                        // 事件ID (字符串格式)
+    AlertEventLabels labels;               // 标签
+    std::string starts_at;                 // 开始时间 (YYYY-MM-DD HH:MM:SS)
+    std::string status;                    // 状态：firing, acknowledged, resolved
+    std::string updated_at;                // 更新时间 (YYYY-MM-DD HH:MM:SS)
 };
 
 /**

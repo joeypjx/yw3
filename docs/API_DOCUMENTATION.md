@@ -195,7 +195,7 @@ Agent向Server上报系统资源使用情况。
 
 ### 4.1 创建告警规则
 
-#### POST /api/alarm/rules
+#### POST /api/alert-rules
 
 创建新的告警规则（支持多条件）。
 
@@ -205,25 +205,29 @@ Agent向Server上报系统资源使用情况。
   "alert_name": "CPU使用率告警",
   "alert_type": "resource",
   "description": "当CPU使用率超过80%时触发告警",
-  "severity": "warning",
+  "severity": "WARNING",
   "enabled": true,
   "summary": "CPU使用率过高",
+  "for": "5m",
   "expression": {
-    "logic": "AND",
+    "metric": "cpu.usage_percent",
     "stable": "node",
     "conditions": [
       {
-        "metric": "cpu.usage_percent",
         "operator": ">",
-        "threshold": 80.0,
-        "duration": "5m",
-        "tags": {}
+        "threshold": 80.0
       }
     ],
-    "tags": {
-      "environment": "production",
-      "team": "ops"
-    }
+    "tags": [
+      {
+        "key": "environment",
+        "value": "production"
+      },
+      {
+        "key": "team",
+        "value": "ops"
+      }
+    ]
   }
 }
 ```
@@ -234,32 +238,29 @@ Agent向Server上报系统资源使用情况。
   "alert_name": "系统综合告警",
   "alert_type": "resource",
   "description": "CPU和内存同时告警",
-  "severity": "critical",
+  "severity": "CRITICAL",
   "enabled": true,
   "summary": "系统资源紧张",
+  "for": "1m",
   "expression": {
-    "logic": "AND",
+    "metric": "cpu.usage_percent",
     "stable": "node",
     "conditions": [
       {
-        "metric": "cpu.usage_percent",
         "operator": ">",
-        "threshold": 90.0,
-        "duration": "1m",
-        "tags": {}
+        "threshold": 90.0
       },
       {
-        "metric": "memory.usage_percent",
         "operator": ">",
-        "threshold": 85.0,
-        "duration": "1m",
-        "tags": {}
+        "threshold": 85.0
       }
     ],
-    "tags": {
-      "environment": "production",
-      "team": "ops"
-    }
+    "tags": [
+      {
+        "key": "environment",
+        "value": "production"
+      }
+    ]
   }
 }
 ```
@@ -270,26 +271,25 @@ Agent向Server上报系统资源使用情况。
   "alert_name": "GPU0温度告警",
   "alert_type": "hardware",
   "description": "GPU0温度过高告警",
-  "severity": "warning",
+  "severity": "WARNING",
   "enabled": true,
   "summary": "GPU温度异常",
+  "for": "2m",
   "expression": {
-    "logic": "AND",
+    "metric": "gpu.0.temperature",
     "stable": "node",
     "conditions": [
       {
-        "metric": "gpu.GPU0.temperature",
         "operator": ">",
-        "threshold": 85.0,
-        "duration": "2m",
-        "tags": {
-          "device": "GPU0"
-        }
+        "threshold": 85.0
       }
     ],
-    "tags": {
-      "environment": "production"
-    }
+    "tags": [
+      {
+        "key": "environment",
+        "value": "production"
+      }
+    ]
   }
 }
 ```
@@ -300,32 +300,36 @@ Agent向Server上报系统资源使用情况。
   "code": 0,
   "message": "Alert rule created successfully",
   "rule": {
-    "ruleId": 1,
+    "id": "1",
     "alert_name": "CPU使用率告警",
     "alert_type": "resource",
     "description": "当CPU使用率超过80%时触发告警",
-    "severity": "warning",
+    "severity": "WARNING",
     "enabled": true,
     "summary": "CPU使用率过高",
+    "for": "5m",
     "expression": {
-      "logic": "AND",
+      "metric": "cpu.usage_percent",
       "stable": "node",
       "conditions": [
         {
-          "metric": "cpu.usage_percent",
           "operator": ">",
-          "threshold": 80.0,
-          "duration": "5m",
-          "tags": {}
+          "threshold": 80.0
         }
       ],
-      "tags": {
-        "environment": "production",
-        "team": "ops"
-      }
+      "tags": [
+        {
+          "key": "environment",
+          "value": "production"
+        },
+        {
+          "key": "team",
+          "value": "ops"
+        }
+      ]
     },
-    "createdAt": 1703123456789,
-    "updatedAt": 1703123456789
+    "created_at": "2024-01-01T12:00:00Z",
+    "updated_at": "2024-01-01T12:00:00Z"
   }
 }
 ```
@@ -342,7 +346,7 @@ Agent向Server上报系统资源使用情况。
 更新指定的告警规则。
 
 **路径参数：**
-- `id` - 告警规则ID（整数）
+- `id` - 告警规则ID（字符串）
 
 **请求体：**
 ```json
@@ -350,26 +354,33 @@ Agent向Server上报系统资源使用情况。
   "alert_name": "CPU使用率告警（更新）",
   "alert_type": "resource",
   "description": "当CPU使用率超过85%时触发告警",
-  "severity": "critical",
+  "severity": "CRITICAL",
   "enabled": true,
   "summary": "CPU使用率严重过高",
+  "for": "5m",
   "expression": {
-    "logic": "AND",
+    "metric": "cpu.usage_percent",
     "stable": "node",
     "conditions": [
       {
-        "metric": "cpu.usage_percent",
         "operator": ">",
-        "threshold": 85.0,
-        "duration": "5m",
-        "tags": {}
+        "threshold": 85.0
       }
     ],
-    "tags": {
-      "environment": "production",
-      "team": "ops",
-      "updated": "true"
-    }
+    "tags": [
+      {
+        "key": "environment",
+        "value": "production"
+      },
+      {
+        "key": "team",
+        "value": "ops"
+      },
+      {
+        "key": "updated",
+        "value": "true"
+      }
+    ]
   }
 }
 ```
@@ -380,33 +391,40 @@ Agent向Server上报系统资源使用情况。
   "code": 0,
   "message": "Alert rule updated successfully",
   "rule": {
-    "ruleId": 1,
+    "id": "1",
     "alert_name": "CPU使用率告警（更新）",
     "alert_type": "resource",
     "description": "当CPU使用率超过85%时触发告警",
-    "severity": "critical",
+    "severity": "CRITICAL",
     "enabled": true,
     "summary": "CPU使用率严重过高",
+    "for": "5m",
     "expression": {
-      "logic": "AND",
+      "metric": "cpu.usage_percent",
       "stable": "node",
       "conditions": [
         {
-          "metric": "cpu.usage_percent",
           "operator": ">",
-          "threshold": 85.0,
-          "duration": "5m",
-          "tags": {}
+          "threshold": 85.0
         }
       ],
-      "tags": {
-        "environment": "production",
-        "team": "ops",
-        "updated": "true"
-      }
+      "tags": [
+        {
+          "key": "environment",
+          "value": "production"
+        },
+        {
+          "key": "team",
+          "value": "ops"
+        },
+        {
+          "key": "updated",
+          "value": "true"
+        }
+      ]
     },
-    "createdAt": 1703123456789,
-    "updatedAt": 1703123456790
+    "created_at": "2024-01-01T12:00:00Z",
+    "updated_at": "2024-01-01T12:05:00Z"
   }
 }
 ```
@@ -423,7 +441,7 @@ Agent向Server上报系统资源使用情况。
 删除指定的告警规则。
 
 **路径参数：**
-- `id` - 告警规则ID（整数）
+- `id` - 告警规则ID（字符串）
 
 **请求体：** 无
 
@@ -456,60 +474,68 @@ Agent向Server上报系统资源使用情况。
   "total": 2,
   "rules": [
     {
-      "ruleId": 1,
+      "id": "1",
       "alert_name": "CPU使用率告警",
       "alert_type": "resource",
       "description": "当CPU使用率超过80%时触发告警",
-      "severity": "warning",
+      "severity": "WARNING",
       "enabled": true,
       "summary": "CPU使用率过高",
+      "for": "5m",
       "expression": {
-        "logic": "AND",
+        "metric": "cpu.usage_percent",
         "stable": "node",
         "conditions": [
           {
-            "metric": "cpu.usage_percent",
             "operator": ">",
-            "threshold": 80.0,
-            "duration": "5m",
-            "tags": {}
+            "threshold": 80.0
           }
         ],
-        "tags": {
-          "environment": "production",
-          "team": "ops"
-        }
+        "tags": [
+          {
+            "key": "environment",
+            "value": "production"
+          },
+          {
+            "key": "team",
+            "value": "ops"
+          }
+        ]
       },
-      "createdAt": 1703123456789,
-      "updatedAt": 1703123456789
+      "created_at": "2024-01-01T12:00:00Z",
+      "updated_at": "2024-01-01T12:00:00Z"
     },
     {
-      "ruleId": 2,
+      "id": "2",
       "alert_name": "内存使用率告警",
       "alert_type": "resource",
       "description": "当内存使用率超过90%时触发告警",
-      "severity": "critical",
+      "severity": "CRITICAL",
       "enabled": false,
       "summary": "内存使用率严重过高",
+      "for": "3m",
       "expression": {
-        "logic": "AND",
+        "metric": "memory.usage_percent",
         "stable": "node",
         "conditions": [
           {
-            "metric": "memory.usage_percent",
             "operator": ">",
-            "threshold": 90.0,
-            "duration": "3m",
-            "tags": {}
+            "threshold": 90.0
           }
         ],
-        "tags": {
-          "environment": "production",
-          "team": "ops"
-        }
+        "tags": [
+          {
+            "key": "environment",
+            "value": "production"
+          },
+          {
+            "key": "team",
+            "value": "ops"
+          }
+        ]
       },
-      "createdAt": 1703123456790,
-      "updatedAt": 1703123456791
+      "created_at": "2024-01-01T12:01:00Z",
+      "updated_at": "2024-01-01T12:02:00Z"
     }
   ]
 }
@@ -526,7 +552,7 @@ Agent向Server上报系统资源使用情况。
 获取指定告警规则的详细信息。
 
 **路径参数：**
-- `id` - 告警规则ID（整数）
+- `id` - 告警规则ID（字符串）
 
 **请求体：** 无
 
@@ -536,32 +562,36 @@ Agent向Server上报系统资源使用情况。
   "code": 0,
   "message": "Success",
   "rule": {
-    "ruleId": 1,
+    "id": "1",
     "alert_name": "CPU使用率告警",
     "alert_type": "resource",
     "description": "当CPU使用率超过80%时触发告警",
-    "severity": "warning",
+    "severity": "WARNING",
     "enabled": true,
     "summary": "CPU使用率过高",
+    "for": "5m",
     "expression": {
-      "logic": "AND",
+      "metric": "cpu.usage_percent",
       "stable": "node",
       "conditions": [
         {
-          "metric": "cpu.usage_percent",
           "operator": ">",
-          "threshold": 80.0,
-          "duration": "5m",
-          "tags": {}
+          "threshold": 80.0
         }
       ],
-      "tags": {
-        "environment": "production",
-        "team": "ops"
-      }
+      "tags": [
+        {
+          "key": "environment",
+          "value": "production"
+        },
+        {
+          "key": "team",
+          "value": "ops"
+        }
+      ]
     },
-    "createdAt": 1703123456789,
-    "updatedAt": 1703123456789
+    "created_at": "2024-01-01T12:00:00Z",
+    "updated_at": "2024-01-01T12:00:00Z"
   }
 }
 ```
@@ -578,7 +608,7 @@ Agent向Server上报系统资源使用情况。
 启用指定的告警规则。
 
 **路径参数：**
-- `id` - 告警规则ID（整数）
+- `id` - 告警规则ID（字符串）
 
 **请求体：** 无
 
@@ -602,7 +632,7 @@ Agent向Server上报系统资源使用情况。
 禁用指定的告警规则。
 
 **路径参数：**
-- `id` - 告警规则ID（整数）
+- `id` - 告警规则ID（字符串）
 
 **请求体：** 无
 
@@ -635,32 +665,36 @@ Agent向Server上报系统资源使用情况。
   "total": 1,
   "rules": [
     {
-      "ruleId": 1,
+      "id": "1",
       "alert_name": "CPU使用率告警",
       "alert_type": "resource",
       "description": "当CPU使用率超过80%时触发告警",
-      "severity": "warning",
+      "severity": "WARNING",
       "enabled": true,
       "summary": "CPU使用率过高",
+      "for": "5m",
       "expression": {
-        "logic": "AND",
+        "metric": "cpu.usage_percent",
         "stable": "node",
         "conditions": [
           {
-            "metric": "cpu.usage_percent",
             "operator": ">",
-            "threshold": 80.0,
-            "duration": "5m",
-            "tags": {}
+            "threshold": 80.0
           }
         ],
-        "tags": {
-          "environment": "production",
-          "team": "ops"
-        }
+        "tags": [
+          {
+            "key": "environment",
+            "value": "production"
+          },
+          {
+            "key": "team",
+            "value": "ops"
+          }
+        ]
       },
-      "createdAt": 1703123456789,
-      "updatedAt": 1703123456789
+      "created_at": "2024-01-01T12:00:00Z",
+      "updated_at": "2024-01-01T12:00:00Z"
     }
   ]
 }
@@ -690,30 +724,46 @@ Agent向Server上报系统资源使用情况。
   "total": 2,
   "events": [
     {
-      "eventId": 1,
-      "ruleId": 1,
-      "nodeId": "192.168.1.100",
-      "status": "FIRING",
-      "severity": "WARNING",
-      "startAt": 1703123456789,
-      "endAt": 0,
-      "triggeredValue": 85.2,
-      "details": "CPU使用率超过阈值: 85.2% > 80.0%",
-      "acknowledgedBy": "",
-      "acknowledgedAt": 0
+      "id": "1",
+      "fingerprint": "1,192.168.10.29_1_1_1",
+      "status": "firing",
+      "created_at": "2024-01-01T12:00:00Z",
+      "starts_at": "2024-01-01T12:00:00Z",
+      "ends_at": "",
+      "updated_at": "2024-01-01T12:00:00Z",
+      "annotations": {
+        "description": "All conditions met (AND logic) - High CPU Usage",
+        "summary": "CPU使用率过高"
+      },
+      "labels": {
+        "alert_type": "resource",
+        "alertname": "High CPU Usage",
+        "host_ip": "192.168.10.29",
+        "metrics": "cpu.usage_percent",
+        "severity": "WARNING",
+        "value": "85.200000"
+      }
     },
     {
-      "eventId": 2,
-      "ruleId": 2,
-      "nodeId": "192.168.1.101",
-      "status": "ACKNOWLEDGED",
-      "severity": "CRITICAL",
-      "startAt": 1703123456790,
-      "endAt": 0,
-      "triggeredValue": 92.1,
-      "details": "内存使用率超过阈值: 92.1% > 90.0%",
-      "acknowledgedBy": "admin",
-      "acknowledgedAt": 1703123456800
+      "id": "2",
+      "fingerprint": "2,192.168.10.30_1_1_1",
+      "status": "acknowledged",
+      "created_at": "2024-01-01T12:01:00Z",
+      "starts_at": "2024-01-01T12:01:00Z",
+      "ends_at": "",
+      "updated_at": "2024-01-01T12:02:00Z",
+      "annotations": {
+        "description": "All conditions met (AND logic) - High Memory Usage",
+        "summary": "内存使用率严重过高"
+      },
+      "labels": {
+        "alert_type": "resource",
+        "alertname": "High Memory Usage",
+        "host_ip": "192.168.10.30",
+        "metrics": "memory.usage_percent",
+        "severity": "CRITICAL",
+        "value": "92.100000"
+      }
     }
   ]
 }
@@ -730,7 +780,7 @@ Agent向Server上报系统资源使用情况。
 获取指定告警事件的详细信息。
 
 **路径参数：**
-- `id` - 告警事件ID（整数）
+- `id` - 告警事件ID（字符串）
 
 **请求体：** 无
 
@@ -740,17 +790,25 @@ Agent向Server上报系统资源使用情况。
   "code": 0,
   "message": "Success",
   "event": {
-    "eventId": 1,
-    "ruleId": 1,
-    "nodeId": "192.168.1.100",
-    "status": "FIRING",
-    "severity": "WARNING",
-    "startAt": 1703123456789,
-    "endAt": 0,
-    "triggeredValue": 85.2,
-    "details": "CPU使用率超过阈值: 85.2% > 80.0%",
-    "acknowledgedBy": "",
-    "acknowledgedAt": 0
+    "id": "1",
+    "fingerprint": "1,192.168.10.29_1_1_1",
+    "status": "firing",
+    "created_at": "2024-01-01T12:00:00Z",
+    "starts_at": "2024-01-01T12:00:00Z",
+    "ends_at": "",
+    "updated_at": "2024-01-01T12:00:00Z",
+    "annotations": {
+      "description": "All conditions met (AND logic) - High CPU Usage",
+      "summary": "CPU使用率过高"
+    },
+    "labels": {
+      "alert_type": "resource",
+      "alertname": "High CPU Usage",
+      "host_ip": "192.168.10.29",
+      "metrics": "cpu.usage_percent",
+      "severity": "WARNING",
+      "value": "85.200000"
+    }
   }
 }
 ```
@@ -1157,25 +1215,108 @@ GET /api/nodes/192.168.1.100/metrics?recentSeconds=600
 
 ### 9.1 告警规则条件
 
+**告警条件结构：**
 ```json
 {
-  "metric": "cpu.usage_percent",     // 指标名称
   "operator": ">",                   // 比较操作符: >, <, >=, <=, ==, !=
-  "threshold": 80.0,                 // 阈值
-  "duration": "5m",                  // 持续时间（如："1m", "5m", "1h"）
-  "tags": {}                         // 条件级标签（可选）
+  "threshold": 80.0                  // 阈值
 }
 ```
 
 **告警表达式结构：**
 ```json
 {
-  "logic": "AND",                    // 逻辑关系: AND, OR
+  "metric": "cpu.usage_percent",     // 指标名称
   "stable": "node",                  // 数据域（可选）
   "conditions": [...],               // 条件数组
-  "tags": {                          // 全局标签（可选）
-    "environment": "production"
+  "tags": [                          // 全局标签（可选）
+    {
+      "key": "environment",
+      "value": "production"
+    }
+  ]
+}
+```
+
+**标签匹配功能：**
+
+告警规则支持强大的标签匹配功能，可以根据节点的各种属性进行精确过滤：
+
+| 标签键 | 类型 | 说明 | 示例值 |
+|--------|------|------|--------|
+| `node_id` | string | 完整节点ID | `"192.168.10.29_1_1_1"` |
+| `host_ip` | string | 主机IP地址 | `"192.168.10.29"` |
+| `hostname` | string | 主机名 | `"test-host"` |
+| `box_id` | int | 机箱ID | `"1"` |
+| `slot_id` | int | 槽位ID | `"1"` |
+| `cpu_id` | int | CPU ID | `"1"` |
+| `srio_id` | int | SRIO ID | `"1"` |
+| `service_port` | int | 服务端口 | `"8080"` |
+| `box_type` | string | 机箱类型 | `"standard"` |
+| `board_type` | string | 板卡类型 | `"compute"` |
+| `cpu_type` | string | CPU类型 | `"x86_64"` |
+| `os_type` | string | 操作系统类型 | `"linux"` |
+| `resource_type` | string | 资源类型 | `"compute"` |
+| `cpu_arch` | string | CPU架构 | `"x86_64"` |
+| `gpu_count` | int | GPU数量 | `"2"` |
+
+**标签匹配示例：**
+
+基于IP地址的告警规则：
+```json
+{
+  "expression": {
+    "metric": "cpu.usage_percent",
+    "conditions": [{"operator": ">", "threshold": 80.0}],
+    "tags": [
+      {"key": "host_ip", "value": "192.168.10.29"}
+    ]
   }
+}
+```
+
+基于机箱ID的告警规则：
+```json
+{
+  "expression": {
+    "metric": "memory.usage_percent",
+    "conditions": [{"operator": ">", "threshold": 85.0}],
+    "tags": [
+      {"key": "box_id", "value": "1"}
+    ]
+  }
+}
+```
+
+多标签组合匹配：
+```json
+{
+  "expression": {
+    "metric": "cpu.usage_percent",
+    "conditions": [{"operator": ">", "threshold": 95.0}],
+    "tags": [
+      {"key": "box_id", "value": "1"},
+      {"key": "os_type", "value": "linux"},
+      {"key": "resource_type", "value": "production"}
+    ]
+  }
+}
+```
+
+**告警规则结构：**
+```json
+{
+  "id": "1",                         // 规则ID（字符串）
+  "alert_name": "CPU使用率告警",      // 告警名称
+  "alert_type": "resource",          // 告警类型
+  "description": "描述",             // 描述
+  "severity": "WARNING",             // 严重程度
+  "enabled": true,                   // 是否启用
+  "summary": "摘要",                  // 摘要
+  "for": "5m",                       // 持续时间
+  "expression": {...},               // 表达式
+  "created_at": "2024-01-01T12:00:00Z", // 创建时间
+  "updated_at": "2024-01-01T12:00:00Z"  // 更新时间
 }
 ```
 
@@ -1209,17 +1350,30 @@ GET /api/nodes/192.168.1.100/metrics?recentSeconds=600
 
 ### 9.5 告警事件字段说明
 
-- `eventId` - 事件ID（整数）
-- `ruleId` - 规则ID（整数）
-- `nodeId` - 节点ID（字符串）
-- `status` - 状态（FIRING, ACKNOWLEDGED, RESOLVED）
-- `severity` - 严重等级（WARNING, CRITICAL）
-- `startAt` - 开始时间（毫秒时间戳）
-- `endAt` - 结束时间（毫秒时间戳，0表示未结束）
-- `triggeredValue` - 触发时的指标值（浮点数）
-- `details` - 详细描述（字符串）
-- `acknowledgedBy` - 认知操作员ID（字符串，空表示未认知）
-- `acknowledgedAt` - 认知时间（毫秒时间戳，0表示未认知）
+**告警事件结构：**
+```json
+{
+  "id": "1",                         // 事件ID（字符串）
+  "fingerprint": "1,192.168.10.29_1_1_1", // 指纹（ruleId,nodeId组合）
+  "status": "firing",                // 状态：firing, acknowledged, resolved
+  "created_at": "2024-01-01T12:00:00Z", // 创建时间（ISO 8601格式）
+  "starts_at": "2024-01-01T12:00:00Z",  // 开始时间（ISO 8601格式）
+  "ends_at": "",                     // 结束时间（ISO 8601格式，空表示未结束）
+  "updated_at": "2024-01-01T12:00:00Z", // 更新时间（ISO 8601格式）
+  "annotations": {                   // 注释
+    "description": "详细描述",
+    "summary": "摘要"
+  },
+  "labels": {                        // 标签
+    "alert_type": "resource",        // 告警类型
+    "alertname": "High CPU Usage",   // 告警名称
+    "host_ip": "192.168.10.29",      // 主机IP
+    "metrics": "cpu.usage_percent",  // 指标名称
+    "severity": "WARNING",           // 严重等级
+    "value": "85.200000"             // 触发时的指标值
+  }
+}
+```
 
 ---
 
@@ -1228,30 +1382,31 @@ GET /api/nodes/192.168.1.100/metrics?recentSeconds=600
 ### 10.1 创建CPU告警规则
 
 ```bash
-curl -X POST http://localhost:18888/api/alarm/rules \
+curl -X POST http://localhost:18888/api/alert-rules \
   -H "Content-Type: application/json" \
   -d '{
     "alert_name": "CPU使用率告警",
     "alert_type": "resource",
     "description": "当CPU使用率超过80%时触发告警",
-    "severity": "warning",
+    "severity": "WARNING",
     "enabled": true,
     "summary": "CPU使用率过高",
+    "for": "5m",
     "expression": {
-      "logic": "AND",
+      "metric": "cpu.usage_percent",
       "stable": "node",
       "conditions": [
         {
-          "metric": "cpu.usage_percent",
           "operator": ">",
-          "threshold": 80.0,
-          "duration": "5m",
-          "tags": {}
+          "threshold": 80.0
         }
       ],
-      "tags": {
-        "environment": "production"
-      }
+      "tags": [
+        {
+          "key": "environment",
+          "value": "production"
+        }
+      ]
     }
   }'
 ```
@@ -1272,13 +1427,15 @@ curl -X GET "http://localhost:18888/api/nodes/192.168.1.100/metrics?recentSecond
 
 ## 11. 注意事项
 
-1. **时间戳格式**: 所有时间戳均为Unix时间戳（毫秒）
+1. **时间戳格式**: 所有时间戳均为ISO 8601格式（YYYY-MM-DD HH:MM:SS）
 2. **字符编码**: 所有文本字段使用UTF-8编码
-3. **数值精度**: 浮点数保留1位小数
+3. **数值精度**: 浮点数保留6位小数
 4. **设备标识**: 设备名称区分大小写
-5. **并发限制**: 建议控制并发请求数量，避免服务器过载
-6. **错误重试**: 建议实现指数退避的重试机制
-7. **数据验证**: 客户端应验证响应数据的完整性
+5. **ID格式**: 规则ID和事件ID均为字符串格式
+6. **标签格式**: 标签使用key-value数组格式
+7. **并发限制**: 建议控制并发请求数量，避免服务器过载
+8. **错误重试**: 建议实现指数退避的重试机制
+9. **数据验证**: 客户端应验证响应数据的完整性
 
 ---
 
@@ -1287,3 +1444,15 @@ curl -X GET "http://localhost:18888/api/nodes/192.168.1.100/metrics?recentSecond
 - **v1.0.0** (2024-01-01): 初始版本，支持基础告警规则和事件管理
 - **v1.1.0** (2024-01-15): 新增多条件告警规则支持
 - **v1.2.0** (2024-01-30): 新增设备指定监控功能
+- **v2.1.0** (2024-10-18): 标签匹配功能增强
+  - 增强告警规则标签匹配功能，支持15种标签类型
+  - 支持基于IP地址、机箱ID、槽位ID、CPU ID等精确过滤
+  - 支持基于操作系统类型、资源类型等环境过滤
+  - 支持多标签组合匹配，提供更灵活的告警规则配置
+  - 优化告警表达式评估服务，提升标签匹配性能
+  - 更新告警规则API结构，使用新的DTO格式
+  - 更新告警事件API结构，支持annotations和labels
+  - 时间戳格式改为ISO 8601
+  - ID字段改为字符串格式
+  - 标签格式改为key-value数组
+  - 新增节点IP地址快照功能

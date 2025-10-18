@@ -119,44 +119,41 @@ application::CreateAlertRuleRequestDTO SimpleJsonParser::parseCreateAlertRuleReq
         dto.enabled = j.value("enabled", true);
         dto.severity = j["severity"].get<std::string>();
         dto.summary = j.value("summary", "");
-        
+        dto.for_ = j["for"].get<std::string>();
+         
         // 解析表达式
         if (j.contains("expression") && j["expression"].is_object()) {
             json expression = j["expression"];
             
-            // 解析逻辑关系
-            dto.expression.logic = expression.value("logic", "AND");
+            // 解析表达式级字段
+            dto.expression.metric = expression["metric"].get<std::string>();
             dto.expression.stable = expression.value("stable", "");
             
             // 解析条件数组
             if (expression.contains("conditions") && expression["conditions"].is_array()) {
                 for (const auto& conditionJson : expression["conditions"]) {
                     application::AlertCondition condition;
-                    condition.metric = conditionJson["metric"].get<std::string>();
                     condition.operator_ = conditionJson["operator"].get<std::string>();
                     condition.threshold = conditionJson["threshold"].get<double>();
-                    condition.duration = conditionJson["duration"].get<std::string>();
-                    
-                    // 解析条件级标签（可选）
-                    if (conditionJson.contains("tags") && conditionJson["tags"].is_object()) {
-                        json conditionTags = conditionJson["tags"];
-                        for (auto& tag : conditionTags.items()) {
-                            condition.tags[tag.key()] = tag.value().get<std::string>();
-                        }
-                    }
                     
                     dto.expression.conditions.push_back(condition);
                 }
             }
             
             // 解析表达式级全局标签（可选）
-            if (expression.contains("tags") && expression["tags"].is_object()) {
+            if (expression.contains("tags") && expression["tags"].is_array()) {
                 json globalTags = expression["tags"];
-                for (auto& tag : globalTags.items()) {
-                    dto.expression.tags[tag.key()] = tag.value().get<std::string>();
+                for (const auto& tagJson : globalTags) {
+                    application::TagPair tagPair;
+                    // 假设标签是对象格式 {"key": "value"}
+                    for (auto& tag : tagJson.items()) {
+                        tagPair.key = tag.key();
+                        tagPair.value = tag.value().get<std::string>();
+                        dto.expression.tags.push_back(tagPair);
+                    }
                 }
             }
-    }
+        }
 
     return dto;
     } catch (const std::exception& e) {
@@ -176,41 +173,38 @@ application::UpdateAlertRuleRequestDTO SimpleJsonParser::parseUpdateAlertRuleReq
         dto.enabled = j.value("enabled", true);
         dto.severity = j.value("severity", "");
         dto.summary = j.value("summary", "");
+        dto.for_ = j.value("for", "");
         
         // 解析表达式
         if (j.contains("expression") && j["expression"].is_object()) {
             json expression = j["expression"];
             
-            // 解析逻辑关系
-            dto.expression.logic = expression.value("logic", "AND");
+            // 解析表达式级字段
+            dto.expression.metric = expression.value("metric", "");
             dto.expression.stable = expression.value("stable", "");
             
             // 解析条件数组
             if (expression.contains("conditions") && expression["conditions"].is_array()) {
                 for (const auto& conditionJson : expression["conditions"]) {
                     application::AlertCondition condition;
-                    condition.metric = conditionJson["metric"].get<std::string>();
                     condition.operator_ = conditionJson["operator"].get<std::string>();
                     condition.threshold = conditionJson["threshold"].get<double>();
-                    condition.duration = conditionJson["duration"].get<std::string>();
-                    
-                    // 解析条件级标签（可选）
-                    if (conditionJson.contains("tags") && conditionJson["tags"].is_object()) {
-                        json conditionTags = conditionJson["tags"];
-                        for (auto& tag : conditionTags.items()) {
-                            condition.tags[tag.key()] = tag.value().get<std::string>();
-                        }
-                    }
                     
                     dto.expression.conditions.push_back(condition);
                 }
             }
             
             // 解析表达式级全局标签（可选）
-            if (expression.contains("tags") && expression["tags"].is_object()) {
+            if (expression.contains("tags") && expression["tags"].is_array()) {
                 json globalTags = expression["tags"];
-                for (auto& tag : globalTags.items()) {
-                    dto.expression.tags[tag.key()] = tag.value().get<std::string>();
+                for (const auto& tagJson : globalTags) {
+                    application::TagPair tagPair;
+                    // 假设标签是对象格式 {"key": "value"}
+                    for (auto& tag : tagJson.items()) {
+                        tagPair.key = tag.key();
+                        tagPair.value = tag.value().get<std::string>();
+                        dto.expression.tags.push_back(tagPair);
+                    }
                 }
             }
         }
@@ -246,38 +240,28 @@ std::string SimpleJsonParser::serializeAlertRuleDetailResponse(const application
     j["message"] = dto.message;
     
     json rule;
-    rule["ruleId"] = dto.rule.ruleId;
+    rule["id"] = dto.rule.id;
     rule["alert_name"] = dto.rule.alert_name;
     rule["alert_type"] = dto.rule.alert_type;
+    rule["created_at"] = dto.rule.created_at;
     rule["description"] = dto.rule.description;
     rule["enabled"] = dto.rule.enabled;
     rule["severity"] = dto.rule.severity;
     rule["summary"] = dto.rule.summary;
-    rule["createdAt"] = dto.rule.createdAt;
-    rule["updatedAt"] = dto.rule.updatedAt;
+    rule["updated_at"] = dto.rule.updated_at;
+    rule["for"] = dto.rule.for_;
     
     // 序列化表达式
     json expression;
-    expression["logic"] = dto.rule.expression.logic;
+    expression["metric"] = dto.rule.expression.metric;
     expression["stable"] = dto.rule.expression.stable;
     
     // 序列化条件数组
     json conditions = json::array();
     for (const auto& condition : dto.rule.expression.conditions) {
         json conditionJson;
-        conditionJson["metric"] = condition.metric;
         conditionJson["operator"] = condition.operator_;
         conditionJson["threshold"] = condition.threshold;
-        conditionJson["duration"] = condition.duration;
-        
-        // 序列化条件级标签
-        if (!condition.tags.empty()) {
-            json conditionTags;
-            for (const auto& tag : condition.tags) {
-                conditionTags[tag.first] = tag.second;
-            }
-            conditionJson["tags"] = conditionTags;
-        }
         
         conditions.push_back(conditionJson);
     }
@@ -285,9 +269,11 @@ std::string SimpleJsonParser::serializeAlertRuleDetailResponse(const application
     
     // 序列化全局标签
     if (!dto.rule.expression.tags.empty()) {
-        json globalTags;
+        json globalTags = json::array();
         for (const auto& tag : dto.rule.expression.tags) {
-            globalTags[tag.first] = tag.second;
+            json tagJson;
+            tagJson[tag.key] = tag.value;
+            globalTags.push_back(tagJson);
         }
         expression["tags"] = globalTags;
     }
@@ -307,38 +293,28 @@ std::string SimpleJsonParser::serializeAlertRuleListResponse(const application::
     json rules = json::array();
     for (const auto& rule : dto.rules) {
         json ruleJson;
-        ruleJson["ruleId"] = rule.ruleId;
+        ruleJson["id"] = rule.id;
         ruleJson["alert_name"] = rule.alert_name;
         ruleJson["alert_type"] = rule.alert_type;
+        ruleJson["created_at"] = rule.created_at;
         ruleJson["description"] = rule.description;
         ruleJson["enabled"] = rule.enabled;
         ruleJson["severity"] = rule.severity;
         ruleJson["summary"] = rule.summary;
-        ruleJson["createdAt"] = rule.createdAt;
-        ruleJson["updatedAt"] = rule.updatedAt;
+        ruleJson["updated_at"] = rule.updated_at;
+        ruleJson["for"] = rule.for_;
         
         // 序列化表达式
         json expression;
-        expression["logic"] = rule.expression.logic;
+        expression["metric"] = rule.expression.metric;
         expression["stable"] = rule.expression.stable;
         
         // 序列化条件数组
         json conditions = json::array();
         for (const auto& condition : rule.expression.conditions) {
             json conditionJson;
-            conditionJson["metric"] = condition.metric;
             conditionJson["operator"] = condition.operator_;
             conditionJson["threshold"] = condition.threshold;
-            conditionJson["duration"] = condition.duration;
-            
-            // 序列化条件级标签
-            if (!condition.tags.empty()) {
-                json conditionTags;
-                for (const auto& tag : condition.tags) {
-                    conditionTags[tag.first] = tag.second;
-                }
-                conditionJson["tags"] = conditionTags;
-            }
             
             conditions.push_back(conditionJson);
         }
@@ -346,9 +322,11 @@ std::string SimpleJsonParser::serializeAlertRuleListResponse(const application::
         
         // 序列化全局标签
         if (!rule.expression.tags.empty()) {
-            json globalTags;
+            json globalTags = json::array();
             for (const auto& tag : rule.expression.tags) {
-                globalTags[tag.first] = tag.second;
+                json tagJson;
+                tagJson[tag.key] = tag.value;
+                globalTags.push_back(tagJson);
             }
             expression["tags"] = globalTags;
         }
@@ -376,17 +354,31 @@ std::string SimpleJsonParser::serializeAlertEventDetailResponse(const applicatio
     j["message"] = dto.message;
     
     json event;
-    event["eventId"] = dto.event.eventId;
-    event["ruleId"] = dto.event.ruleId;
-    event["nodeId"] = dto.event.nodeId;
+    
+    // 注释
+    json annotations;
+    annotations["description"] = dto.event.annotations.description;
+    annotations["summary"] = dto.event.annotations.summary;
+    event["annotations"] = annotations;
+    
+    // 基本信息
+    event["created_at"] = dto.event.created_at;
+    event["ends_at"] = dto.event.ends_at;
+    event["fingerprint"] = dto.event.fingerprint;
+    event["id"] = dto.event.id;
+    event["starts_at"] = dto.event.starts_at;
     event["status"] = dto.event.status;
-    event["severity"] = dto.event.severity;
-    event["startAt"] = dto.event.startAt;
-    event["endAt"] = dto.event.endAt;
-    event["triggeredValue"] = dto.event.triggeredValue;
-    event["details"] = dto.event.details;
-    event["acknowledgedBy"] = dto.event.acknowledgedBy;
-    event["acknowledgedAt"] = dto.event.acknowledgedAt;
+    event["updated_at"] = dto.event.updated_at;
+    
+    // 标签
+    json labels;
+    labels["alert_type"] = dto.event.labels.alert_type;
+    labels["alertname"] = dto.event.labels.alertname;
+    labels["host_ip"] = dto.event.labels.host_ip;
+    labels["metrics"] = dto.event.labels.metrics;
+    labels["severity"] = dto.event.labels.severity;
+    labels["value"] = dto.event.labels.value;
+    event["labels"] = labels;
     
     j["event"] = event;
     
@@ -402,17 +394,31 @@ std::string SimpleJsonParser::serializeAlertEventListResponse(const application:
     json events = json::array();
     for (const auto& event : dto.events) {
         json eventJson;
-        eventJson["eventId"] = event.eventId;
-        eventJson["ruleId"] = event.ruleId;
-        eventJson["nodeId"] = event.nodeId;
+        
+        // 注释
+        json annotations;
+        annotations["description"] = event.annotations.description;
+        annotations["summary"] = event.annotations.summary;
+        eventJson["annotations"] = annotations;
+        
+        // 基本信息
+        eventJson["created_at"] = event.created_at;
+        eventJson["ends_at"] = event.ends_at;
+        eventJson["fingerprint"] = event.fingerprint;
+        eventJson["id"] = event.id;
+        eventJson["starts_at"] = event.starts_at;
         eventJson["status"] = event.status;
-        eventJson["severity"] = event.severity;
-        eventJson["startAt"] = event.startAt;
-        eventJson["endAt"] = event.endAt;
-        eventJson["triggeredValue"] = event.triggeredValue;
-        eventJson["details"] = event.details;
-        eventJson["acknowledgedBy"] = event.acknowledgedBy;
-        eventJson["acknowledgedAt"] = event.acknowledgedAt;
+        eventJson["updated_at"] = event.updated_at;
+        
+        // 标签
+        json labels;
+        labels["alert_type"] = event.labels.alert_type;
+        labels["alertname"] = event.labels.alertname;
+        labels["host_ip"] = event.labels.host_ip;
+        labels["metrics"] = event.labels.metrics;
+        labels["severity"] = event.labels.severity;
+        labels["value"] = event.labels.value;
+        eventJson["labels"] = labels;
         
         events.push_back(eventJson);
     }

@@ -56,7 +56,7 @@ EvaluationResult AlertRule::evaluate(const ServerNode& node, const std::vector<M
     
     // 使用表达式评估器进行评估
     auto evaluationResult = AlertExpressionEvaluationService::evaluate(
-        expression_, latestMetrics, node.getNodeId()
+        expression_, latestMetrics, node
     );
     
     if (evaluationResult.triggered) {

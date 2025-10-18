@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# 启动完整的监控系统：Server + Agent + 前端
+# 启动完整的监控系统：Server + Agent + 前端（测试版本）
+# 使用最新的API接口格式，包含多种测试告警规则
 
 # 获取脚本所在目录和项目根目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -58,7 +59,7 @@ trap cleanup EXIT INT TERM
 
 main() {
     echo "=========================================="
-    echo "  启动完整监控系统"
+    echo "  启动完整监控系统（测试版本）"
     echo "=========================================="
     
     # 1. 编译系统
@@ -84,352 +85,398 @@ main() {
         exit 1
     fi
     
-    # 3. 创建告警规则
-    log_info "创建告警规则..."
+    # 3. 创建测试告警规则
+    log_info "创建测试告警规则..."
     
-    # 基础CPU和内存告警规则
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
+    # 单条件告警规则 - CPU使用率告警
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
         -H "Content-Type: application/json" \
         -d '{
             "alert_name": "High CPU Usage",
             "description": "CPU使用率超过0.1%",
             "enabled": true,
             "severity": "WARNING",
+            "for": "1s",
             "expression": {
+                "metric": "usage_percent",
+                "stable": "cpu",
                 "conditions": [
                     {
-                        "metric": "cpu.usage_percent",
                         "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
+                        "threshold": 0.1
                     }
                 ],
-                "logic": "AND"
+                "tags": []
             }
-        }' > /dev/null
+        }' > /dev/null 2>&1
     
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
+    # 多条件告警规则 - CPU和内存同时告警（AND逻辑）
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
         -H "Content-Type: application/json" \
         -d '{
-            "alert_name": "High Memory Usage",
-            "description": "内存使用率超过0.1%",
-            "enabled": true,
-            "severity": "CRITICAL",
-            "expression": {
-                "conditions": [
-                    {
-                        "metric": "memory.usage_percent",
-                        "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
-                    }
-                ],
-                "logic": "AND"
-            }
-        }' > /dev/null
-    
-    # 磁盘聚合告警规则
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
-        -H "Content-Type: application/json" \
-        -d '{
-            "alert_name": "High Disk Usage (Aggregated)",
-            "description": "磁盘使用率超过0.1%",
-            "enabled": true,
-            "severity": "WARNING",
-            "expression": {
-                "conditions": [
-                    {
-                        "metric": "disk.usage_percent.avg",
-                        "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
-                    }
-                ],
-                "logic": "AND"
-            }
-        }' > /dev/null
-    
-    # 指定磁盘告警规则
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
-        -H "Content-Type: application/json" \
-        -d '{
-            "alert_name": "High Disk Usage (sda)",
-            "description": "sda磁盘使用率超过0.1%",
-            "enabled": true,
-            "severity": "WARNING",
-            "expression": {
-                "conditions": [
-                    {
-                        "metric": "disk.sda.usage_percent",
-                        "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
-                    }
-                ],
-                "logic": "AND"
-            }
-        }' > /dev/null
-    
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
-        -H "Content-Type: application/json" \
-        -d '{
-            "alert_name": "High Disk Usage (sdb)",
-            "description": "sdb磁盘使用率超过0.1%",
-            "enabled": true,
-            "severity": "WARNING",
-            "expression": {
-                "conditions": [
-                    {
-                        "metric": "disk.sdb.usage_percent",
-                        "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
-                    }
-                ],
-                "logic": "AND"
-            }
-        }' > /dev/null
-    
-    # 网络聚合告警规则
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
-        -H "Content-Type: application/json" \
-        -d '{
-            "alert_name": "High Network Usage (Aggregated)",
-            "description": "网络使用率超过1字节/秒",
-            "enabled": true,
-            "severity": "WARNING",
-            "expression": {
-                "conditions": [
-                    {
-                        "metric": "network.rx_rate.total",
-                        "operator": ">",
-                        "threshold": 1,
-                        "duration": "1s"
-                    }
-                ],
-                "logic": "AND"
-            }
-        }' > /dev/null
-    
-    # 指定网卡告警规则
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
-        -H "Content-Type: application/json" \
-        -d '{
-            "alert_name": "High Network Usage (eth0)",
-            "description": "eth0网卡接收速率超过1字节/秒",
-            "enabled": true,
-            "severity": "WARNING",
-            "expression": {
-                "conditions": [
-                    {
-                        "metric": "network.eth0.rx_rate",
-                        "operator": ">",
-                        "threshold": 1,
-                        "duration": "1s"
-                    }
-                ],
-                "logic": "AND"
-            }
-        }' > /dev/null
-    
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
-        -H "Content-Type: application/json" \
-        -d '{
-            "alert_name": "High Network Usage (eth1)",
-            "description": "eth1网卡发送速率超过1字节/秒",
-            "enabled": true,
-            "severity": "WARNING",
-            "expression": {
-                "conditions": [
-                    {
-                        "metric": "network.eth1.tx_rate",
-                        "operator": ">",
-                        "threshold": 1,
-                        "duration": "1s"
-                    }
-                ],
-                "logic": "AND"
-            }
-        }' > /dev/null
-    
-    # GPU聚合告警规则
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
-        -H "Content-Type: application/json" \
-        -d '{
-            "alert_name": "High GPU Usage (Aggregated)",
-            "description": "GPU使用率超过0.1%",
-            "enabled": true,
-            "severity": "WARNING",
-            "expression": {
-                "conditions": [
-                    {
-                        "metric": "gpu.compute_usage.max",
-                        "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
-                    }
-                ],
-                "logic": "AND"
-            }
-        }' > /dev/null
-    
-    # 指定GPU告警规则
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
-        -H "Content-Type: application/json" \
-        -d '{
-            "alert_name": "High GPU Usage (GPU0)",
-            "description": "GPU0使用率超过0.1%",
-            "enabled": true,
-            "severity": "WARNING",
-            "expression": {
-                "conditions": [
-                    {
-                        "metric": "gpu.0.compute_usage",
-                        "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
-                    }
-                ],
-                "logic": "AND"
-            }
-        }' > /dev/null
-    
-    # 多条件告警规则 - CPU和内存同时告警
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
-        -H "Content-Type: application/json" \
-        -d '{
-            "alert_name": "High CPU and Memory Usage",
+            "alert_name": "High CPU and Memory",
             "description": "CPU和内存使用率同时超过0.1%",
             "enabled": true,
             "severity": "CRITICAL",
+            "for": "1s",
             "expression": {
+                "metric": "usage_percent",
+                "stable": "cpu",
                 "conditions": [
                     {
-                        "metric": "cpu.usage_percent",
                         "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
+                        "threshold": 0.1
                     },
                     {
-                        "metric": "memory.usage_percent",
                         "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
+                        "threshold": 0.1
                     }
                 ],
-                "logic": "AND"
+                "tags": []
             }
-        }' > /dev/null
+        }' > /dev/null 2>&1
     
-    # 多条件告警规则 - CPU或内存任一告警
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
+    # 多条件告警规则 - CPU或内存任一告警（OR逻辑）
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
         -H "Content-Type: application/json" \
         -d '{
-            "alert_name": "High CPU or Memory Usage",
+            "alert_name": "High CPU or Memory",
             "description": "CPU或内存使用率任一超过0.1%",
             "enabled": true,
             "severity": "WARNING",
+            "for": "1s",
             "expression": {
+                "metric": "usage_percent",
+                "stable": "cpu",
                 "conditions": [
                     {
-                        "metric": "cpu.usage_percent",
                         "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
+                        "threshold": 0.1
                     },
                     {
-                        "metric": "memory.usage_percent",
                         "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
+                        "threshold": 0.1
                     }
                 ],
-                "logic": "OR"
+                "tags": []
             }
-        }' > /dev/null
+        }' > /dev/null 2>&1
     
-    # 多条件告警规则 - 磁盘和网络同时告警
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
+    # 基于IP地址的告警规则（标签匹配功能）
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
         -H "Content-Type: application/json" \
         -d '{
-            "alert_name": "High Disk and Network Usage",
-            "description": "磁盘和网络使用率同时超过阈值",
+            "alert_name": "High CPU on Specific IP",
+            "description": "特定IP地址的CPU使用率告警",
+            "enabled": true,
+            "severity": "WARNING",
+            "for": "1s",
+            "expression": {
+                "metric": "usage_percent",
+                "stable": "cpu",
+                "conditions": [
+                    {
+                        "operator": ">",
+                        "threshold": 0.1
+                    }
+                ],
+                "tags": [
+                    {
+                        "host_ip": "192.168.10.29"
+                    }
+                ]
+            }
+        }' > /dev/null 2>&1
+    
+    # 基于机箱ID的告警规则（标签匹配功能）
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
+        -H "Content-Type: application/json" \
+        -d '{
+            "alert_name": "High Memory on Box 1",
+            "description": "机箱1的内存使用率告警",
             "enabled": true,
             "severity": "CRITICAL",
+            "for": "1s",
             "expression": {
+                "metric": "usage_percent",
+                "stable": "memory",
                 "conditions": [
                     {
-                        "metric": "disk.usage_percent.avg",
                         "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
-                    },
-                    {
-                        "metric": "network.rx_rate.total",
-                        "operator": ">",
-                        "threshold": 1,
-                        "duration": "1s"
+                        "threshold": 0.1
                     }
                 ],
-                "logic": "AND"
+                "tags": [
+                    {
+                        "box_id": "1"
+                    }
+                ]
             }
-        }' > /dev/null
+        }' > /dev/null 2>&1
     
-    # 多条件告警规则 - 复杂条件组合
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
+    # 基于槽位ID的告警规则（标签匹配功能）
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
         -H "Content-Type: application/json" \
         -d '{
-            "alert_name": "System Resource Stress",
-            "description": "系统资源压力告警：CPU>0.1% 且 (内存>0.1% 或 磁盘>0.1%)",
+            "alert_name": "High GPU on Slot 1",
+            "description": "槽位1的GPU使用率告警",
+            "enabled": true,
+            "severity": "WARNING",
+            "for": "1s",
+            "expression": {
+                "metric": "compute_usage.max",
+                "stable": "gpu",
+                "conditions": [
+                    {
+                        "operator": ">",
+                        "threshold": 0.1
+                    }
+                ],
+                "tags": [
+                    {
+                        "slot_id": "1"
+                    }
+                ]
+            }
+        }' > /dev/null 2>&1
+    
+    # 基于CPU ID的告警规则（标签匹配功能）
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
+        -H "Content-Type: application/json" \
+        -d '{
+            "alert_name": "High CPU Load on CPU 1",
+            "description": "CPU 1的高负载告警",
             "enabled": true,
             "severity": "CRITICAL",
+            "for": "1s",
             "expression": {
+                "metric": "usage_percent",
+                "stable": "cpu",
                 "conditions": [
                     {
-                        "metric": "cpu.usage_percent",
                         "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
-                    },
-                    {
-                        "metric": "memory.usage_percent",
-                        "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
-                    },
-                    {
-                        "metric": "disk.usage_percent.avg",
-                        "operator": ">",
-                        "threshold": 0.1,
-                        "duration": "1s"
+                        "threshold": 0.1
                     }
                 ],
-                "logic": "AND"
+                "tags": [
+                    {
+                        "cpu_id": "1"
+                    }
+                ]
             }
-        }' > /dev/null
+        }' > /dev/null 2>&1
     
-    # 低阈值告警规则 - 用于测试
-    curl -X POST http://localhost:$SERVER_PORT/api/alarm/rules \
+    # 基于主机名的告警规则（标签匹配功能）
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
         -H "Content-Type: application/json" \
         -d '{
-            "alert_name": "Low Threshold Test",
-            "description": "低阈值测试告警",
+            "alert_name": "High Disk Usage on Specific Host",
+            "description": "特定主机的磁盘使用率告警",
             "enabled": true,
-            "severity": "INFO",
+            "severity": "WARNING",
+            "for": "1s",
             "expression": {
+                "metric": "usage_percent.avg",
+                "stable": "disk",
                 "conditions": [
                     {
-                        "metric": "cpu.usage_percent",
                         "operator": ">",
-                        "threshold": 0.01,
-                        "duration": "1s"
+                        "threshold": 0.1
                     }
                 ],
-                "logic": "AND"
+                "tags": [
+                    {
+                        "hostname": "test-host"
+                    }
+                ]
             }
-        }' > /dev/null
+        }' > /dev/null 2>&1
     
-    log_success "告警规则创建完成 (共创建16个告警规则)"
+    # 基于操作系统类型的告警规则（标签匹配功能）
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
+        -H "Content-Type: application/json" \
+        -d '{
+            "alert_name": "High Network Usage on Linux",
+            "description": "Linux系统的网络使用率告警",
+            "enabled": true,
+            "severity": "WARNING",
+            "for": "1s",
+            "expression": {
+                "metric": "rx_rate.total",
+                "stable": "network",
+                "conditions": [
+                    {
+                        "operator": ">",
+                        "threshold": 1
+                    }
+                ],
+                "tags": [
+                    {
+                        "os_type": "linux"
+                    }
+                ]
+            }
+        }' > /dev/null 2>&1
+    
+    # 基于GPU数量的告警规则（标签匹配功能）
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
+        -H "Content-Type: application/json" \
+        -d '{
+            "alert_name": "High GPU Memory on Multi-GPU Systems",
+            "description": "多GPU系统的GPU内存使用率告警",
+            "enabled": true,
+            "severity": "CRITICAL",
+            "for": "1s",
+            "expression": {
+                "metric": "memory_usage.max",
+                "stable": "gpu",
+                "conditions": [
+                    {
+                        "operator": ">",
+                        "threshold": 0.1
+                    }
+                ],
+                "tags": [
+                    {
+                        "gpu_count": "2"
+                    }
+                ]
+            }
+        }' > /dev/null 2>&1
+    
+    # 特定网卡告警规则 - eth0网卡
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
+        -H "Content-Type: application/json" \
+        -d '{
+            "alert_name": "High Network Usage on eth0",
+            "description": "eth0网卡接收速率超过1字节/秒",
+            "enabled": true,
+            "severity": "WARNING",
+            "for": "1s",
+            "expression": {
+                "metric": "eth0.rx_rate",
+                "stable": "network",
+                "conditions": [
+                    {
+                        "operator": ">",
+                        "threshold": 1
+                    }
+                ],
+                "tags": []
+            }
+        }' > /dev/null 2>&1
+    
+    # 特定网卡告警规则 - eth1网卡
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
+        -H "Content-Type: application/json" \
+        -d '{
+            "alert_name": "High Network Usage on eth1",
+            "description": "eth1网卡发送速率超过1字节/秒",
+            "enabled": true,
+            "severity": "WARNING",
+            "for": "1s",
+            "expression": {
+                "metric": "eth1.tx_rate",
+                "stable": "network",
+                "conditions": [
+                    {
+                        "operator": ">",
+                        "threshold": 1
+                    }
+                ],
+                "tags": []
+            }
+        }' > /dev/null 2>&1
+    
+    # 特定磁盘告警规则 - sda磁盘
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
+        -H "Content-Type: application/json" \
+        -d '{
+            "alert_name": "High Disk Usage on sda",
+            "description": "sda磁盘使用率超过0.1%",
+            "enabled": true,
+            "severity": "WARNING",
+            "for": "1s",
+            "expression": {
+                "metric": "sda.usage_percent",
+                "stable": "disk",
+                "conditions": [
+                    {
+                        "operator": ">",
+                        "threshold": 0.1
+                    }
+                ],
+                "tags": []
+            }
+        }' > /dev/null 2>&1
+    
+    # 特定磁盘告警规则 - sdb磁盘
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
+        -H "Content-Type: application/json" \
+        -d '{
+            "alert_name": "High Disk Usage on sdb",
+            "description": "sdb磁盘使用率超过0.1%",
+            "enabled": true,
+            "severity": "WARNING",
+            "for": "1s",
+            "expression": {
+                "metric": "sdb.usage_percent",
+                "stable": "disk",
+                "conditions": [
+                    {
+                        "operator": ">",
+                        "threshold": 0.1
+                    }
+                ],
+                "tags": []
+            }
+        }' > /dev/null 2>&1
+    
+    # 特定GPU告警规则 - GPU0
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
+        -H "Content-Type: application/json" \
+        -d '{
+            "alert_name": "High GPU Usage on GPU0",
+            "description": "GPU0使用率超过0.1%",
+            "enabled": true,
+            "severity": "WARNING",
+            "for": "1s",
+            "expression": {
+                "metric": "0.compute_usage",
+                "stable": "gpu",
+                "conditions": [
+                    {
+                        "operator": ">",
+                        "threshold": 0.1
+                    }
+                ],
+                "tags": []
+            }
+        }' > /dev/null 2>&1
+    
+    # 特定GPU告警规则 - GPU1
+    curl -X POST http://localhost:$SERVER_PORT/api/alert-rules \
+        -H "Content-Type: application/json" \
+        -d '{
+            "alert_name": "High GPU Memory Usage on GPU1",
+            "description": "GPU1内存使用率超过0.1%",
+            "enabled": true,
+            "severity": "CRITICAL",
+            "for": "1s",
+            "expression": {
+                "metric": "1.memory_usage",
+                "stable": "gpu",
+                "conditions": [
+                    {
+                        "operator": ">",
+                        "threshold": 0.1
+                    }
+                ],
+                "tags": []
+            }
+        }' > /dev/null 2>&1
+    
+    log_success "测试告警规则创建完成 (共创建16个测试告警规则)"
     
     # 4. 启动Agent
     log_info "启动Agent..."
@@ -494,6 +541,11 @@ main() {
     echo ""
     echo "💡 提示:"
     echo "  - 打开浏览器访问 http://localhost:5001 查看监控仪表板"
+    echo "  - 访问 http://localhost:5001/alert-rules 管理告警规则"
+    echo "  - 此版本包含16个测试告警规则，使用低阈值便于测试"
+    echo "  - 包含单条件、多条件（AND/OR逻辑）告警测试"
+    echo "  - 包含多种设备类型标签匹配测试（IP、机箱、槽位、CPU、主机名、OS、GPU等）"
+    echo "  - 包含特定设备告警测试（eth0/eth1网卡、sda/sdb磁盘、GPU0/GPU1等）"
     echo "  - 按 Ctrl+C 停止所有服务"
     echo "  - 前端会自动刷新显示最新的告警信息"
     echo "=========================================="

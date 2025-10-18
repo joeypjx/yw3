@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>告警规则管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .rule-card { transition: transform 0.2s; }
+        .rule-card:hover { transform: translateY(-2px); }
+        .condition-item { background-color: #f8f9fa; border-radius: 5px; padding: 10px; margin: 5px 0; }
+        .tag-item { background-color: #e3f2fd; border-radius: 3px; padding: 5px 8px; margin: 2px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- 页面标题 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1><i class="fas fa-cogs"></i> 告警规则管理</h1>
+                        <p class="text-muted">管理监控告警规则</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="showCreateRuleModal()">
+                            <i class="fas fa-plus"></i> 创建规则
+                        </button>
+                        <a href="/" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> 返回仪表板
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 告警规则列表 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list"></i> 告警规则列表
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="rulesList">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">加载中...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建/编辑规则模态框 -->
+    <div class="modal fade" id="ruleModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="ruleModalTitle">创建告警规则</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="ruleForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="alertName" class="form-label">规则名称 *</label>
+                                    <input type="text" class="form-control" id="alertName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="alertType" class="form-label">规则类型</label>
+                                    <input type="text" class="form-control" id="alertType" placeholder="如: system, application">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">描述</label>
+                            <textarea class="form-control" id="description" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="severity" class="form-label">严重程度 *</label>
+                                    <select class="form-select" id="severity" required>
+                                        <option value="">请选择</option>
+                                        <option value="WARNING">警告</option>
+                                        <option value="CRITICAL">严重</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="forDuration" class="form-label">持续时间 *</label>
+                                    <input type="text" class="form-control" id="forDuration" placeholder="如: 5m, 1h" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="summary" class="form-label">摘要</label>
+                            <input type="text" class="form-control" id="summary">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enabled" checked>
+                                <label class="form-check-label" for="enabled">启用规则</label>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        <h6>告警表达式</h6>
+                        
+                        <div class="mb-3">
+                            <label for="metric" class="form-label">监控指标 *</label>
+                            <input type="text" class="form-control" id="metric" placeholder="如: cpu_usage_percent" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="stable" class="form-label">数据域</label>
+                            <input type="text" class="form-control" id="stable" placeholder="如: node, component">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">告警条件</label>
+                            <div id="conditionsContainer">
+                                <div class="condition-item">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <select class="form-select condition-operator">
+                                                <option value=">">大于</option>
+                                                <option value="<">小于</option>
+                                                <option value=">=">大于等于</option>
+                                                <option value="<=">小于等于</option>
+                                                <option value="==">等于</option>
+                                                <option value="!=">不等于</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <input type="number" class="form-control condition-threshold" placeholder="阈值" step="0.01">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCondition(this)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addCondition()">
+                                <i class="fas fa-plus"></i> 添加条件
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">标签</label>
+                            <div id="tagsContainer">
+                                <!-- 标签将通过JavaScript动态添加 -->
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addTag()">
+                                <i class="fas fa-plus"></i> 添加标签
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveRule()">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentRuleId = null;
+        let isEditMode = false;
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRules();
+        });
+
+        // 加载告警规则列表
+        async function loadRules() {
+            try {
+                const response = await fetch('/api/dashboard-data');
+                const data = await response.json();
+                
+                if (data.alert_rules && data.alert_rules.code === 0) {
+                    displayRules(data.alert_rules.rules);
+                } else {
+                    showError('加载告警规则失败: ' + (data.alert_rules?.message || '未知错误'));
+                }
+            } catch (error) {
+                showError('加载告警规则失败: ' + error.message);
+            }
+        }
+
+        // 显示告警规则列表
+        function displayRules(rules) {
+            const container = document.getElementById('rulesList');
+            
+            if (!rules || rules.length === 0) {
+                container.innerHTML = '<div class="text-muted text-center">暂无告警规则</div>';
+                return;
+            }
+            
+            let html = '';
+            rules.forEach(rule => {
+                const statusBadge = rule.enabled ? 
+                    '<span class="badge bg-success">启用</span>' : 
+                    '<span class="badge bg-secondary">禁用</span>';
+                
+                const severityClass = rule.severity === 'CRITICAL' ? 'text-danger' : 'text-warning';
+                
+                // 处理条件显示
+                let conditionsText = '';
+                if (rule.expression && rule.expression.conditions) {
+                    const conditions = rule.expression.conditions.map(condition => 
+                        `${condition.operator} ${condition.threshold}`
+                    ).join(' AND ');
+                    const metric = rule.expression.metric || 'unknown_metric';
+                    const duration = rule.for || 'unknown_duration';
+                    conditionsText = `${metric} ${conditions} for ${duration}`;
+                }
+                
+                // 处理标签显示
+                let tagsHtml = '';
+                if (rule.expression && rule.expression.tags && rule.expression.tags.length > 0) {
+                    tagsHtml = rule.expression.tags.map(tag => {
+                        // 处理新的对象格式 {key: value}
+                        const entries = Object.entries(tag);
+                        return entries.map(([key, value]) => `<span class="tag-item">${key}=${value}</span>`).join('');
+                    }).join('');
+                }
+                
+                const createdAt = rule.created_at ? new Date(rule.created_at).toLocaleString() : '未知';
+                
+                html += `
+                    <div class="card rule-card mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h5 class="card-title">${rule.alert_name}</h5>
+                                    <p class="card-text">
+                                        <small class="text-muted">${conditionsText}</small>
+                                        ${rule.description ? `<br><small class="text-info">${rule.description}</small>` : ''}
+                                        ${tagsHtml ? `<br>${tagsHtml}` : ''}
+                                    </p>
+                                    <small class="text-muted">
+                                        ID: ${rule.id} | 
+                                        创建时间: ${createdAt} | 
+                                        类型: ${rule.alert_type || '未设置'}
+                                    </small>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="mb-2">
+                                        ${statusBadge}
+                                        <br>
+                                        <span class="${severityClass}">${rule.severity}</span>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-outline-primary btn-sm me-1" onclick="editRule('${rule.id}')">
+                                            <i class="fas fa-edit"></i> 编辑
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="deleteRule('${rule.id}')">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // 显示创建规则模态框
+        function showCreateRuleModal() {
+            currentRuleId = null;
+            isEditMode = false;
+            document.getElementById('ruleModalTitle').textContent = '创建告警规则';
+            document.getElementById('ruleForm').reset();
+            document.getElementById('enabled').checked = true;
+            
+            // 重置条件和标签
+            resetConditions();
+            resetTags();
+            
+            const modal = new bootstrap.Modal(document.getElementById('ruleModal'));
+            modal.show();
+        }
+
+        // 编辑规则
+        function editRule(ruleId) {
+            // 这里应该从API获取规则详情，然后填充表单
+            // 为了简化，我们暂时显示一个提示
+            showError('编辑功能正在开发中...');
+        }
+
+        // 删除规则
+        async function deleteRule(ruleId) {
+            if (confirm('确定要删除这个告警规则吗？')) {
+                try {
+                    const response = await fetch(`/api/delete-alert-rule/${ruleId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.code === 0) {
+                        showSuccess('规则删除成功');
+                        loadRules(); // 重新加载规则列表
+                    } else {
+                        showError('删除失败: ' + result.message);
+                    }
+                } catch (error) {
+                    showError('删除失败: ' + error.message);
+                }
+            }
+        }
+
+        // 添加条件
+        function addCondition() {
+            const container = document.getElementById('conditionsContainer');
+            const conditionHtml = `
+                <div class="condition-item">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <select class="form-select condition-operator">
+                                <option value=">">大于</option>
+                                <option value="<">小于</option>
+                                <option value=">=">大于等于</option>
+                                <option value="<=">小于等于</option>
+                                <option value="==">等于</option>
+                                <option value="!=">不等于</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="number" class="form-control condition-threshold" placeholder="阈值" step="0.01">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCondition(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', conditionHtml);
+        }
+
+        // 移除条件
+        function removeCondition(button) {
+            button.closest('.condition-item').remove();
+        }
+
+        // 添加标签
+        function addTag() {
+            const container = document.getElementById('tagsContainer');
+            const tagHtml = `
+                <div class="tag-input-item mb-2">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <input type="text" class="form-control tag-key" placeholder="键">
+                        </div>
+                        <div class="col-md-5">
+                            <input type="text" class="form-control tag-value" placeholder="值">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeTag(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', tagHtml);
+        }
+
+        // 移除标签
+        function removeTag(button) {
+            button.closest('.tag-input-item').remove();
+        }
+
+        // 重置条件
+        function resetConditions() {
+            const container = document.getElementById('conditionsContainer');
+            container.innerHTML = `
+                <div class="condition-item">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <select class="form-select condition-operator">
+                                <option value=">">大于</option>
+                                <option value="<">小于</option>
+                                <option value=">=">大于等于</option>
+                                <option value="<=">小于等于</option>
+                                <option value="==">等于</option>
+                                <option value="!=">不等于</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="number" class="form-control condition-threshold" placeholder="阈值" step="0.01">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeCondition(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 重置标签
+        function resetTags() {
+            document.getElementById('tagsContainer').innerHTML = '';
+        }
+
+        // 保存规则
+        async function saveRule() {
+            // 收集表单数据
+            const formData = {
+                alert_name: document.getElementById('alertName').value,
+                alert_type: document.getElementById('alertType').value,
+                description: document.getElementById('description').value,
+                severity: document.getElementById('severity').value,
+                for: document.getElementById('forDuration').value,
+                summary: document.getElementById('summary').value,
+                enabled: document.getElementById('enabled').checked,
+                expression: {
+                    metric: document.getElementById('metric').value,
+                    stable: document.getElementById('stable').value,
+                    conditions: [],
+                    tags: []
+                }
+            };
+
+            // 收集条件
+            const conditionItems = document.querySelectorAll('.condition-item');
+            conditionItems.forEach(item => {
+                const operator = item.querySelector('.condition-operator').value;
+                const threshold = parseFloat(item.querySelector('.condition-threshold').value);
+                if (operator && !isNaN(threshold)) {
+                    formData.expression.conditions.push({
+                        operator: operator,
+                        threshold: threshold
+                    });
+                }
+            });
+
+            // 收集标签
+            const tagItems = document.querySelectorAll('.tag-input-item');
+            tagItems.forEach(item => {
+                const key = item.querySelector('.tag-key').value;
+                const value = item.querySelector('.tag-value').value;
+                if (key && value) {
+                    // 使用新的对象格式 {key: value}
+                    const tagObj = {};
+                    tagObj[key] = value;
+                    formData.expression.tags.push(tagObj);
+                }
+            });
+
+            // 验证必填字段
+            if (!formData.alert_name || !formData.severity || !formData.for || !formData.expression.metric) {
+                showError('请填写所有必填字段');
+                return;
+            }
+
+            if (formData.expression.conditions.length === 0) {
+                showError('请至少添加一个告警条件');
+                return;
+            }
+
+            try {
+                let result;
+                if (isEditMode && currentRuleId) {
+                    // 更新规则
+                    result = await fetch(`/api/update-alert-rule/${currentRuleId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                } else {
+                    // 创建规则
+                    result = await fetch('/api/create-alert-rule', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                }
+                
+                const response = await result.json();
+                
+                if (response.code === 0) {
+                    showSuccess(isEditMode ? '规则更新成功' : '规则创建成功');
+                    loadRules(); // 重新加载规则列表
+                    
+                    // 关闭模态框
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('ruleModal'));
+                    modal.hide();
+                } else {
+                    showError((isEditMode ? '更新' : '创建') + '失败: ' + response.message);
+                }
+            } catch (error) {
+                showError((isEditMode ? '更新' : '创建') + '失败: ' + error.message);
+            }
+        }
+
+        // 显示成功消息
+        function showSuccess(message) {
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+            alert.style.top = '20px';
+            alert.style.right = '20px';
+            alert.style.zIndex = '9999';
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 3000);
+        }
+
+        // 显示错误消息
+        function showError(message) {
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+            alert.style.top = '20px';
+            alert.style.right = '20px';
+            alert.style.zIndex = '9999';
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

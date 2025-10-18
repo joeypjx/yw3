@@ -117,10 +117,13 @@
             <!-- 告警规则列表 -->
             <div class="col-md-6">
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
                             <i class="fas fa-cogs"></i> 告警规则
                         </h5>
+                        <a href="/alert-rules" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-cog"></i> 管理
+                        </a>
                     </div>
                     <div class="card-body">
                         <div id="alertRulesList">
@@ -328,31 +331,58 @@
                 
                 const severityClass = rule.severity === 'CRITICAL' ? 'severity-critical' : 'severity-warning';
                 
-                // 处理多条件规则
+                // 处理新的表达式结构
                 let conditionsText = '';
                 if (rule.expression && rule.expression.conditions) {
                     const conditions = rule.expression.conditions.map(condition => 
-                        `${condition.metric} ${condition.operator} ${condition.threshold}`
-                    ).join(` ${rule.expression.logic} `);
-                    conditionsText = conditions;
+                        `${condition.operator} ${condition.threshold}`
+                    ).join(' AND '); // 默认使用 AND 逻辑
+                    
+                    // 添加指标名称和持续时间
+                    const metric = rule.expression.metric || 'unknown_metric';
+                    const duration = rule.for || 'unknown_duration';
+                    conditionsText = `${metric} ${conditions} for ${duration}`;
                 } else {
                     // 兼容旧格式
                     conditionsText = `${rule.metricName || ''} ${rule.operator || ''} ${rule.threshold || ''}`;
                 }
                 
+                // 处理标签显示
+                let tagsText = '';
+                if (rule.expression && rule.expression.tags && rule.expression.tags.length > 0) {
+                    const tags = rule.expression.tags.map(tag => {
+                        // 处理新的对象格式 {key: value}
+                        const entries = Object.entries(tag);
+                        return entries.map(([key, value]) => `${key}=${value}`).join(', ');
+                    }).join(', ');
+                    tagsText = `<br><small class="text-info">标签: ${tags}</small>`;
+                }
+                
+                // 处理创建和更新时间
+                const createdAt = rule.created_at ? new Date(rule.created_at).toLocaleString() : '未知';
+                const updatedAt = rule.updated_at ? new Date(rule.updated_at).toLocaleString() : '未知';
+                
                 html += `
                     <div class="card mb-2">
                         <div class="card-body py-2">
                             <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h6 class="mb-1">${rule.alert_name || rule.ruleName || 'Unknown Rule'}</h6>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">${rule.alert_name || 'Unknown Rule'}</h6>
                                     <small class="text-muted">${conditionsText}</small>
                                     ${rule.description ? `<br><small class="text-info">${rule.description}</small>` : ''}
+                                    ${tagsText}
+                                    <br>
+                                    <small class="text-muted">
+                                        ID: ${rule.id} | 
+                                        创建: ${createdAt} | 
+                                        更新: ${updatedAt}
+                                    </small>
                                 </div>
                                 <div class="text-end">
                                     ${statusBadge}
                                     <br>
                                     <small class="${severityClass}">${rule.severity}</small>
+                                    ${rule.alert_type ? `<br><small class="text-secondary">${rule.alert_type}</small>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -379,11 +409,12 @@
             
             let html = '';
             eventsData.events.forEach(event => {
-                const statusClass = event.status.toLowerCase();
-                const severityClass = event.severity.toLowerCase();
+                const statusClass = event.status ? event.status.toLowerCase() : 'unknown';
+                const severityClass = (event.labels && event.labels.severity) ? event.labels.severity.toLowerCase() : 'unknown';
                 
-                const startTime = new Date(event.startAt * 1000).toLocaleString();
-                const triggeredValue = event.triggeredValue.toFixed(2);
+                // 解析时间字符串 (YYYY-MM-DD HH:MM:SS 格式)
+                const startTime = event.starts_at ? new Date(event.starts_at).toLocaleString() : '未知时间';
+                const triggeredValue = (event.labels && event.labels.value) ? parseFloat(event.labels.value).toFixed(2) : '0.00';
                 
                 html += `
                     <div class="alert-item ${statusClass} card mb-2">
@@ -391,14 +422,16 @@
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <h6 class="mb-1">
-                                        <span class="status-${statusClass}">${event.status}</span>
-                                        <span class="severity-${severityClass}">${event.severity}</span>
+                                        <span class="status-${statusClass}">${event.status || 'unknown'}</span>
+                                        <span class="severity-${severityClass}">${(event.labels && event.labels.severity) || 'unknown'}</span>
                                     </h6>
-                                    <small class="text-muted">规则ID: ${event.ruleId} | 节点: ${event.nodeId}</small>
+                                    <small class="text-muted">规则: ${(event.labels && event.labels.alertname) || 'unknown'} | 节点: ${(event.labels && event.labels.host_ip) || 'unknown'}</small>
                                     <br>
-                                    <small class="text-muted">触发值: ${triggeredValue}% | 时间: ${startTime}</small>
+                                    <small class="text-muted">指标: ${(event.labels && event.labels.metrics) || 'unknown'} | 值: ${triggeredValue}</small>
                                     <br>
-                                    <small class="text-muted">${event.details}</small>
+                                    <small class="text-muted">指纹: ${event.fingerprint || 'unknown'} | 时间: ${startTime}</small>
+                                    <br>
+                                    <small class="text-muted">${(event.annotations && event.annotations.description) || '无描述'}</small>
                                 </div>
                                 <div class="text-end">
                                     ${getEventActions(event)}
@@ -416,17 +449,17 @@
         function getEventActions(event) {
             let actions = '';
             
-            if (event.status === 'FIRING') {
+            if (event.status === 'firing') {
                 actions += `
-                    <button class="btn btn-warning btn-sm me-1" onclick="acknowledgeEvent(${event.eventId})">
+                    <button class="btn btn-warning btn-sm me-1" onclick="acknowledgeEvent('${event.id || 'unknown'}')">
                         <i class="fas fa-eye"></i> 认知
                     </button>
                 `;
             }
             
-            if (event.status === 'FIRING' || event.status === 'ACKNOWLEDGED') {
+            if (event.status === 'firing' || event.status === 'acknowledged') {
                 actions += `
-                    <button class="btn btn-success btn-sm" onclick="resolveEvent(${event.eventId})">
+                    <button class="btn btn-success btn-sm" onclick="resolveEvent('${event.id || 'unknown'}')">
                         <i class="fas fa-check"></i> 解决
                     </button>
                 `;

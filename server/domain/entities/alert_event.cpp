@@ -16,7 +16,13 @@ AlertEvent AlertEvent::create(
         node.getNodeId(),
         rule.getSeverity(),
         triggeredValue,
-        details
+        details,
+        rule.getAlertName(),
+        rule.getDescription(),
+        rule.getSummary(),
+        rule.getAlertType(),
+        rule.getExpression(),
+        node.getIpAddress()
     );
 }
 
@@ -26,7 +32,13 @@ AlertEvent::AlertEvent(
     const std::string& nodeId,
     const std::string& severity,
     double triggeredValue,
-    const std::string& details
+    const std::string& details,
+    const std::string& alertName,
+    const std::string& description,
+    const std::string& summary,
+    const std::string& alertType,
+    const AlertExpression& expression,
+    const std::string& nodeIpAddress
 )
     : eventId_(eventId)
     , ruleId_(ruleId)
@@ -39,6 +51,12 @@ AlertEvent::AlertEvent(
     , details_(details)
     , acknowledgedBy_("")
     , acknowledgedAt_(0)
+    , alertName_(alertName)
+    , description_(description)
+    , summary_(summary)
+    , alertType_(alertType)
+    , expression_(expression)
+    , nodeIpAddress_(nodeIpAddress)
 {
 }
 

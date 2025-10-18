@@ -72,13 +72,6 @@ public:
 private:
     domain::IAlertRuleRepository* alertRuleRepository_;
 
-    // 辅助方法：转换领域对象为DTO
-    AlertRuleDTO toAlertRuleDTO(const domain::AlertRule& rule);
-
-    // 辅助方法：转换DTO为领域对象
-    domain::AlertRule toDomainAlertRule(const CreateAlertRuleRequestDTO& dto, int32_t ruleId);
-    domain::AlertRule toDomainAlertRule(const UpdateAlertRuleRequestDTO& dto, int32_t ruleId);
-
     // 辅助方法：验证请求参数
     bool validateCreateRequest(const CreateAlertRuleRequestDTO& request, std::string& errorMessage);
     bool validateUpdateRequest(const UpdateAlertRuleRequestDTO& request, std::string& errorMessage);

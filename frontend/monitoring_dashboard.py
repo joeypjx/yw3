@@ -110,6 +110,98 @@ class MonitoringAPI:
             return response.json() if response.status_code == 200 else {"code": -1, "message": "API调用失败"}
         except Exception as e:
             return {"code": -1, "message": f"连接错误: {str(e)}"}
+    
+    def create_alert_rule(self, rule_data):
+        """创建告警规则"""
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/alert-rules",
+                json=rule_data,
+                timeout=5
+            )
+            return response.json() if response.status_code in [200, 201] else {"code": -1, "message": "API调用失败"}
+        except Exception as e:
+            return {"code": -1, "message": f"连接错误: {str(e)}"}
+    
+    def update_alert_rule(self, rule_id, rule_data):
+        """更新告警规则"""
+        try:
+            response = requests.put(
+                f"{self.base_url}/api/alert-rules/{rule_id}",
+                json=rule_data,
+                timeout=5
+            )
+            return response.json() if response.status_code == 200 else {"code": -1, "message": "API调用失败"}
+        except Exception as e:
+            return {"code": -1, "message": f"连接错误: {str(e)}"}
+    
+    def delete_alert_rule(self, rule_id):
+        """删除告警规则"""
+        try:
+            response = requests.delete(f"{self.base_url}/api/alert-rules/{rule_id}", timeout=5)
+            return response.json() if response.status_code == 200 else {"code": -1, "message": "API调用失败"}
+        except Exception as e:
+            return {"code": -1, "message": f"连接错误: {str(e)}"}
+    
+    def get_alert_rule(self, rule_id):
+        """获取单个告警规则"""
+        try:
+            response = requests.get(f"{self.base_url}/api/alert-rules/{rule_id}", timeout=5)
+            return response.json() if response.status_code == 200 else {"code": -1, "message": "API调用失败"}
+        except Exception as e:
+            return {"code": -1, "message": f"连接错误: {str(e)}"}
+    
+    def get_alert_events(self):
+        """获取所有告警事件"""
+        try:
+            response = requests.get(f"{self.base_url}/api/alert-events", timeout=5)
+            return response.json() if response.status_code == 200 else {"code": -1, "message": "API调用失败"}
+        except Exception as e:
+            return {"code": -1, "message": f"连接错误: {str(e)}"}
+    
+    def acknowledge_alert_event(self, event_id, operator_id="admin"):
+        """认知告警事件"""
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/alert-events/{event_id}/acknowledge",
+                json={"operatorId": operator_id},
+                timeout=5
+            )
+            return response.json() if response.status_code in [200, 201] else {"code": -1, "message": "API调用失败"}
+        except Exception as e:
+            return {"code": -1, "message": f"连接错误: {str(e)}"}
+    
+    def resolve_alert_event(self, event_id):
+        """解决告警事件"""
+        try:
+            response = requests.post(f"{self.base_url}/api/alert-events/{event_id}/resolve", timeout=5)
+            return response.json() if response.status_code in [200, 201] else {"code": -1, "message": "API调用失败"}
+        except Exception as e:
+            return {"code": -1, "message": f"连接错误: {str(e)}"}
+    
+    def get_active_alert_events(self):
+        """获取活跃的告警事件"""
+        try:
+            response = requests.get(f"{self.base_url}/api/alert-events/active", timeout=5)
+            return response.json() if response.status_code == 200 else {"code": -1, "message": "API调用失败"}
+        except Exception as e:
+            return {"code": -1, "message": f"连接错误: {str(e)}"}
+    
+    def get_alert_events_by_status(self, status):
+        """根据状态获取告警事件"""
+        try:
+            response = requests.get(f"{self.base_url}/api/alert-events/status/{status}", timeout=5)
+            return response.json() if response.status_code == 200 else {"code": -1, "message": "API调用失败"}
+        except Exception as e:
+            return {"code": -1, "message": f"连接错误: {str(e)}"}
+    
+    def get_active_alert_rules(self):
+        """获取活跃的告警规则"""
+        try:
+            response = requests.get(f"{self.base_url}/api/alert-rules/active", timeout=5)
+            return response.json() if response.status_code == 200 else {"code": -1, "message": "API调用失败"}
+        except Exception as e:
+            return {"code": -1, "message": f"连接错误: {str(e)}"}
 
 # 创建API客户端实例
 api = MonitoringAPI(SERVER_BASE_URL)
@@ -118,6 +210,11 @@ api = MonitoringAPI(SERVER_BASE_URL)
 def index():
     """主页面"""
     return render_template('dashboard.html')
+
+@app.route('/alert-rules')
+def alert_rules():
+    """告警规则管理页面"""
+    return render_template('alert_rules.html')
 
 @app.route('/node/<node_id>')
 def node_detail(node_id):
@@ -179,9 +276,9 @@ def get_dashboard_data():
         active_alert_rules = api.get_active_alert_rules()
         alert_events = api.get_alert_events()
         active_alert_events = api.get_active_alert_events()
-        firing_events = api.get_alert_events_by_status("FIRING")
-        acknowledged_events = api.get_alert_events_by_status("ACKNOWLEDGED")
-        resolved_events = api.get_alert_events_by_status("RESOLVED")
+        firing_events = api.get_alert_events_by_status("firing")
+        acknowledged_events = api.get_alert_events_by_status("acknowledged")
+        resolved_events = api.get_alert_events_by_status("resolved")
         
         # 获取节点和指标数据
         nodes = api.get_nodes()
@@ -230,6 +327,44 @@ def resolve_event():
         event_id = data.get('eventId')
         
         result = api.resolve_alert_event(event_id)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"code": -1, "message": str(e)}), 500
+
+@app.route('/api/create-alert-rule', methods=['POST'])
+def create_alert_rule():
+    """创建告警规则"""
+    try:
+        data = request.get_json()
+        result = api.create_alert_rule(data)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"code": -1, "message": str(e)}), 500
+
+@app.route('/api/update-alert-rule/<rule_id>', methods=['PUT'])
+def update_alert_rule(rule_id):
+    """更新告警规则"""
+    try:
+        data = request.get_json()
+        result = api.update_alert_rule(rule_id, data)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"code": -1, "message": str(e)}), 500
+
+@app.route('/api/delete-alert-rule/<rule_id>', methods=['DELETE'])
+def delete_alert_rule(rule_id):
+    """删除告警规则"""
+    try:
+        result = api.delete_alert_rule(rule_id)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"code": -1, "message": str(e)}), 500
+
+@app.route('/api/get-alert-rule/<rule_id>')
+def get_alert_rule(rule_id):
+    """获取单个告警规则"""
+    try:
+        result = api.get_alert_rule(rule_id)
         return jsonify(result)
     except Exception as e:
         return jsonify({"code": -1, "message": str(e)}), 500
