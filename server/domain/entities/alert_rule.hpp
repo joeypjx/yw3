@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <vector>
 #include "server_node.hpp"
-#include "metrics.hpp"
+#include "metric_snapshot.hpp"
 
 namespace monitoring::domain {
 

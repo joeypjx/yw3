@@ -9,32 +9,9 @@
 #include "../../domain/repositories/i_metric_repository.hpp"
 #include "../../domain/repositories/i_alert_event_repository.hpp"
 #include "../dto/alert_event_dto.hpp"
+#include "../dto/query_dto.hpp"
 
 namespace monitoring::application {
-
-/**
- * 节点健康状态DTO
- */
-struct NodeHealthDTO {
-    std::string nodeId;
-    std::string hostname;
-    std::string ipAddress;
-    std::string status;  // "HEALTHY", "WARNING", "CRITICAL", "UNKNOWN"
-    uint64_t lastSeenAt;
-    bool isOnline;
-};
-
-/**
- * 指标数据DTO
- */
-struct MetricDataDTO {
-    uint64_t timestamp;
-    double cpuUsage;
-    double memoryUsage;
-    double diskUsage;
-    double networkRxRate;
-    double networkTxRate;
-};
 
 /**
  * QueryService - 查询服务
@@ -112,11 +89,6 @@ private:
     domain::IServerNodeRepository* nodeRepository_;
     domain::IMetricRepository* metricRepository_;
     domain::IAlertEventRepository* alertEventRepository_;
-
-    // 辅助方法：转换领域对象为DTO
-    NodeHealthDTO toNodeHealthDTO(const domain::ServerNode& node);
-    MetricDataDTO toMetricDataDTO(const domain::MetricSnapshot& snapshot);
-    AlertEventDTO toAlertEventDTO(const domain::AlertEvent& event);
 };
 
 } // namespace monitoring::application

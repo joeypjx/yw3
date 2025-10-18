@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 #include <optional>
-#include "../entities/metrics.hpp"
+#include "../entities/metric_snapshot.hpp"
 
 namespace monitoring::domain {
 

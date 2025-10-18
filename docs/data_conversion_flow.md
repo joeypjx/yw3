@@ -19,12 +19,12 @@ HTTP JSON 字符串 → DTO对象 → 领域对象 → 数据库
 
 **职责**:
 - 接收 HTTP 请求，提取 JSON 字符串
-- 使用 `JsonUtils` 将 JSON 反序列化为 DTO
+- 使用 `SimpleJsonParser` 将 JSON 反序列化为 DTO
 - 调用应用层服务
 - 将响应 DTO 序列化为 JSON 返回
 
 **关键类**:
-- `JsonUtils`: JSON 序列化/反序列化工具（需要 nlohmann/json 库）
+- `SimpleJsonParser`: JSON 序列化/反序列化工具（基于 nlohmann/json）
 - `HttpApiController`: HTTP 端点控制器
 
 **示例**:
@@ -33,13 +33,13 @@ HTTP JSON 字符串 → DTO对象 → 领域对象 → 数据库
 std::string jsonBody = request.getBody();
 
 // JSON → DTO
-auto dto = JsonUtils::parseHeartbeatRequest(jsonBody);
+auto dto = SimpleJsonParser::parseHeartbeatRequest(jsonBody);
 
 // 调用应用层
 auto response = ingestionService_->processHeartbeat(dto);
 
 // DTO → JSON
-std::string responseJson = JsonUtils::serializeHeartbeatResponse(response);
+std::string responseJson = SimpleJsonParser::serializeHeartbeatResponse(response);
 ```
 
 ### 2. 应用层 (Application Layer)
@@ -132,7 +132,7 @@ std::string jsonBody = R"({
 })";
 
 // JSON → DTO
-HeartbeatRequestDTO dto = JsonUtils::parseHeartbeatRequest(jsonBody);
+HeartbeatRequestDTO dto = SimpleJsonParser::parseHeartbeatRequest(jsonBody);
 
 // ========== 应用层 ==========
 // DTO → Domain
@@ -173,7 +173,7 @@ std::string jsonBody = R"({
   }
 })";
 
-ResourceReportRequestDTO dto = JsonUtils::parseResourceRequest(jsonBody);
+ResourceReportRequestDTO dto = SimpleJsonParser::parseResourceRequest(jsonBody);
 
 // ========== 应用层 ==========
 // 先查找节点
@@ -232,7 +232,7 @@ TEST(IngestionServiceTest, ProcessHeartbeat) {
 ```
 
 ### 4. 可维护性
-- 更换JSON库？只需修改表现层的 `JsonUtils`
+- 更换JSON库？只需修改表现层的 `SimpleJsonParser`（已升级到 nlohmann/json）
 - 更换数据库？只需修改基础设施层的仓储实现
 - 修改业务规则？只需修改领域层
 - **各层独立演化，互不影响**
@@ -252,7 +252,10 @@ TEST(IngestionServiceTest, ProcessHeartbeat) {
 
 ## 下一步
 
-1. 实现 `JsonUtils` 的具体解析逻辑（需要JSON库）
-2. 创建 `IngestionService` 的完整实现
-3. 实现基础设施层的仓储类
-4. 在 `main.cpp` 中进行依赖注入组装
+1. ✅ 实现 `SimpleJsonParser` 的具体解析逻辑（已升级到 nlohmann/json）
+2. ✅ 创建 `IngestionService` 的完整实现
+3. ✅ 实现基础设施层的仓储类
+4. ✅ 在 `main.cpp` 中进行依赖注入组装
+5. ✅ 实现告警规则管理和告警事件管理功能
+6. ✅ 实现前端仪表板
+7. ✅ 完成系统集成测试

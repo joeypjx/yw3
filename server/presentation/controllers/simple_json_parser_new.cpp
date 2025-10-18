@@ -13,23 +13,18 @@ application::HeartbeatRequestDTO SimpleJsonParser::parseHeartbeatRequest(const s
         json j = json::parse(jsonStr);
         
         application::HeartbeatRequestDTO dto;
-        dto.api_version = j["api_version"].get<int32_t>();
+        dto.apiVersion = j["api_version"].get<int32_t>();
         
         // 解析data字段
         json data = j["data"];
-        dto.data.box_id = data["box_id"].get<int32_t>();
-        dto.data.slot_id = data["slot_id"].get<int32_t>();
-        dto.data.cpu_id = data["cpu_id"].get<int32_t>();
-        dto.data.srio_id = data["srio_id"].get<int32_t>();
-        dto.data.host_ip = data["host_ip"].get<std::string>();
+        dto.data.boxId = data["box_id"].get<int32_t>();
+        dto.data.slotId = data["slot_id"].get<int32_t>();
+        dto.data.cpuId = data["cpu_id"].get<int32_t>();
+        dto.data.hostIp = data["host_ip"].get<std::string>();
         dto.data.hostname = data["hostname"].get<std::string>();
-        dto.data.service_port = data["service_port"].get<uint16_t>();
-        dto.data.box_type = data["box_type"].get<std::string>();
-        dto.data.board_type = data["board_type"].get<std::string>();
-        dto.data.cpu_type = data["cpu_type"].get<std::string>();
-        dto.data.os_type = data["os_type"].get<std::string>();
-        dto.data.resource_type = data["resource_type"].get<std::string>();
-        dto.data.cpu_arch = data["cpu_arch"].get<std::string>();
+        dto.data.osVersion = data["os_version"].get<std::string>();
+        dto.data.kernelVersion = data["kernel_version"].get<std::string>();
+        dto.data.uptime = data["uptime"].get<uint64_t>();
         
         return dto;
     } catch (const std::exception& e) {
@@ -43,62 +38,51 @@ application::ResourceReportRequestDTO SimpleJsonParser::parseResourceRequest(con
         json j = json::parse(jsonStr);
         
         application::ResourceReportRequestDTO dto;
-        dto.api_version = j["api_version"].get<int32_t>();
+        dto.apiVersion = j["api_version"].get<int32_t>();
         
         // 解析data字段
         json data = j["data"];
-        dto.data.host_ip = data["host_ip"].get<std::string>();
+        dto.data.hostIp = data["host_ip"].get<std::string>();
         
         // 解析resource字段
         json resource = data["resource"];
         
         // CPU信息
         json cpu = resource["cpu"];
-        dto.data.resource.cpu.usage_percent = cpu["usage_percent"].get<double>();
-        dto.data.resource.cpu.load_avg_1m = cpu["load_avg_1m"].get<double>();
-        dto.data.resource.cpu.load_avg_5m = cpu["load_avg_5m"].get<double>();
-        dto.data.resource.cpu.load_avg_15m = cpu["load_avg_15m"].get<double>();
-        dto.data.resource.cpu.core_count = cpu["core_count"].get<int32_t>();
-        dto.data.resource.cpu.core_allocated = cpu["core_allocated"].get<int32_t>();
-        dto.data.resource.cpu.temperature = cpu["temperature"].get<double>();
-        dto.data.resource.cpu.voltage = cpu["voltage"].get<double>();
-        dto.data.resource.cpu.current = cpu["current"].get<double>();
-        dto.data.resource.cpu.power = cpu["power"].get<double>();
+        dto.data.resource.cpu.usagePercent = cpu["usage_percent"].get<double>();
+        dto.data.resource.cpu.frequency = cpu["frequency"].get<uint64_t>();
+        dto.data.resource.cpu.cores = cpu["cores"].get<int32_t>();
         
         // 内存信息
         json memory = resource["memory"];
         dto.data.resource.memory.total = memory["total"].get<uint64_t>();
         dto.data.resource.memory.used = memory["used"].get<uint64_t>();
         dto.data.resource.memory.free = memory["free"].get<uint64_t>();
-        dto.data.resource.memory.usage_percent = memory["usage_percent"].get<double>();
+        dto.data.resource.memory.usagePercent = memory["usage_percent"].get<double>();
         
         // 磁盘信息
-        json disks = resource["disk"];
+        json disks = resource["disks"];
         for (const auto& disk : disks) {
-            application::DiskPartitionDTO diskInfo;
+            application::DiskInfo diskInfo;
             diskInfo.device = disk["device"].get<std::string>();
-            diskInfo.mount_point = disk["mount_point"].get<std::string>();
+            diskInfo.mountPoint = disk["mount_point"].get<std::string>();
             diskInfo.total = disk["total"].get<uint64_t>();
             diskInfo.used = disk["used"].get<uint64_t>();
             diskInfo.free = disk["free"].get<uint64_t>();
-            diskInfo.usage_percent = disk["usage_percent"].get<double>();
-            dto.data.resource.disk.push_back(diskInfo);
+            diskInfo.usagePercent = disk["usage_percent"].get<double>();
+            dto.data.resource.disks.push_back(diskInfo);
         }
         
         // 网络信息
-        json networks = resource["network"];
+        json networks = resource["networks"];
         for (const auto& network : networks) {
-            application::NetworkInterfaceDTO networkInfo;
+            application::NetworkInfo networkInfo;
             networkInfo.interface = network["interface"].get<std::string>();
-            networkInfo.rx_bytes = network["rx_bytes"].get<uint64_t>();
-            networkInfo.tx_bytes = network["tx_bytes"].get<uint64_t>();
-            networkInfo.rx_packets = network["rx_packets"].get<uint64_t>();
-            networkInfo.tx_packets = network["tx_packets"].get<uint64_t>();
-            networkInfo.rx_errors = network["rx_errors"].get<uint64_t>();
-            networkInfo.tx_errors = network["tx_errors"].get<uint64_t>();
-            networkInfo.rx_rate = network["rx_rate"].get<uint64_t>();
-            networkInfo.tx_rate = network["tx_rate"].get<uint64_t>();
-            dto.data.resource.network.push_back(networkInfo);
+            networkInfo.rxBytes = network["rx_bytes"].get<uint64_t>();
+            networkInfo.txBytes = network["tx_bytes"].get<uint64_t>();
+            networkInfo.rxRate = network["rx_rate"].get<uint64_t>();
+            networkInfo.txRate = network["tx_rate"].get<uint64_t>();
+            dto.data.resource.networks.push_back(networkInfo);
         }
         
         return dto;
@@ -119,8 +103,8 @@ application::CreateAlertRuleRequestDTO SimpleJsonParser::parseCreateAlertRuleReq
         dto.operator_ = j["operator"].get<std::string>();
         dto.durationSeconds = j["durationSeconds"].get<int32_t>();
         dto.severity = j["severity"].get<std::string>();
-        dto.isEnabled = j.value("isEnabled", true);  // 默认为true
-        dto.description = j.value("description", ""); // 默认为空字符串
+        dto.isEnabled = j["isEnabled"].get<bool>();
+        dto.description = j["description"].get<std::string>();
         
         return dto;
     } catch (const std::exception& e) {
@@ -142,8 +126,8 @@ application::UpdateAlertRuleRequestDTO SimpleJsonParser::parseUpdateAlertRuleReq
         dto.severity = j.value("severity", "");
         dto.isEnabled = j.value("isEnabled", true);
         dto.description = j.value("description", "");
-
-    return dto;
+        
+        return dto;
     } catch (const std::exception& e) {
         std::cerr << "Error parsing update alert rule request: " << e.what() << std::endl;
         throw std::runtime_error("Invalid JSON format for update alert rule request");
@@ -156,6 +140,7 @@ std::string SimpleJsonParser::serializeHeartbeatResponse(const application::Hear
     json j;
     j["code"] = dto.code;
     j["message"] = dto.message;
+    j["timestamp"] = dto.timestamp;
     
     return j.dump();
 }
@@ -164,6 +149,7 @@ std::string SimpleJsonParser::serializeResourceResponse(const application::Resou
     json j;
     j["code"] = dto.code;
     j["message"] = dto.message;
+    j["timestamp"] = dto.timestamp;
     
     return j.dump();
 }

@@ -1,7 +1,7 @@
 #include "ingestion_service.hpp"
 #include "../dto/dto_converter.hpp"
 #include "../../domain/entities/server_node.hpp"
-#include "../../domain/entities/metrics.hpp"
+#include "../../domain/entities/metric_snapshot.hpp"
 #include <iostream>
 
 namespace monitoring::application {

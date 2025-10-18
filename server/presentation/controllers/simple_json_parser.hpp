@@ -8,18 +8,19 @@
 #include "../../application/dto/resource_dto.hpp"
 #include "../../application/dto/alert_rule_dto.hpp"
 #include "../../application/dto/alert_event_dto.hpp"
+#include "json.hpp"
 
 namespace monitoring::presentation {
 
 /**
- * SimpleJsonParser - 简单的JSON解析器
+ * SimpleJsonParser - JSON解析器
  *
- * 注意：这是一个简化版本，仅用于演示
- * 生产环境建议使用 nlohmann/json 或 RapidJSON
- *
+ * 使用 nlohmann/json 库实现生产级JSON解析
+ * 
  * 功能：
  * - 解析Agent发送的JSON请求
  * - 生成响应JSON
+ * - 支持完整的JSON语法和错误处理
  */
 class SimpleJsonParser {
 public:

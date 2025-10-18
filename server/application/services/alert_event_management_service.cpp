@@ -1,4 +1,5 @@
 #include "alert_event_management_service.hpp"
+#include "../dto/dto_converter.hpp"
 #include "../dto/alert_event_dto.hpp"
 #include "../../domain/entities/alert_event.hpp"
 #include "../../domain/entities/alert_rule.hpp"
@@ -25,7 +26,7 @@ AlertEventListResponseDTO AlertEventManagementService::getAllAlertEvents() {
         response.total = events.size();
         
         for (const auto& event : events) {
-            response.events.push_back(convertToDTO(event));
+            response.events.push_back(DTOConverter::toAlertEventDTO(event));
         }
         
         std::cout << "[AlertEventManagementService] Retrieved " << events.size() 
@@ -54,7 +55,7 @@ AlertEventDetailResponseDTO AlertEventManagementService::getAlertEventById(int64
         
         response.code = 0;
         response.message = "Success";
-        response.event = convertToDTO(eventOpt.value());
+        response.event = DTOConverter::toAlertEventDTO(eventOpt.value());
         
         std::cout << "[AlertEventManagementService] Retrieved alert event: " << eventId << std::endl;
     } catch (const std::exception& e) {
@@ -78,7 +79,7 @@ AlertEventListResponseDTO AlertEventManagementService::getAlertEventsByNode(cons
         response.total = events.size();
         
         for (const auto& event : events) {
-            response.events.push_back(convertToDTO(event));
+            response.events.push_back(DTOConverter::toAlertEventDTO(event));
         }
         
         std::cout << "[AlertEventManagementService] Retrieved " << events.size() 
@@ -107,7 +108,7 @@ AlertEventListResponseDTO AlertEventManagementService::getAlertEventsByRule(int3
         response.total = events.size();
         
         for (const auto& event : events) {
-            response.events.push_back(convertToDTO(event));
+            response.events.push_back(DTOConverter::toAlertEventDTO(event));
         }
         
         std::cout << "[AlertEventManagementService] Retrieved " << events.size() 
@@ -136,7 +137,7 @@ AlertEventListResponseDTO AlertEventManagementService::getActiveAlertEvents() {
         response.total = events.size();
         
         for (const auto& event : events) {
-            response.events.push_back(convertToDTO(event));
+            response.events.push_back(DTOConverter::toAlertEventDTO(event));
         }
         
         std::cout << "[AlertEventManagementService] Retrieved " << events.size() 
@@ -180,7 +181,7 @@ AlertEventListResponseDTO AlertEventManagementService::getAlertEventsByStatus(co
         response.total = events.size();
         
         for (const auto& event : events) {
-            response.events.push_back(convertToDTO(event));
+            response.events.push_back(DTOConverter::toAlertEventDTO(event));
         }
         
         std::cout << "[AlertEventManagementService] Retrieved " << events.size() 
@@ -254,22 +255,6 @@ CommonResponseDTO AlertEventManagementService::resolveAlertEvent(int64_t eventId
     }
     
     return response;
-}
-
-AlertEventDTO AlertEventManagementService::convertToDTO(const domain::AlertEvent& event) {
-    AlertEventDTO dto;
-    dto.eventId = event.getEventId();
-    dto.ruleId = event.getRuleId();
-    dto.nodeId = event.getNodeId();
-    dto.status = domain::alertStatusToString(event.getStatus());
-    dto.severity = domain::severityToString(event.getSeverity());
-    dto.startAt = event.getStartAt();
-    dto.endAt = event.getEndAt();
-    dto.triggeredValue = event.getTriggeredValue();
-    dto.details = event.getDetails();
-    dto.acknowledgedBy = event.getAcknowledgedBy();
-    dto.acknowledgedAt = event.getAcknowledgedAt();
-    return dto;
 }
 
 } // namespace monitoring::application

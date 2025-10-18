@@ -3,8 +3,13 @@
 
 #include "heartbeat_dto.hpp"
 #include "resource_dto.hpp"
+#include "alert_rule_dto.hpp"
+#include "alert_event_dto.hpp"
+#include "query_dto.hpp"
 #include "../../domain/entities/server_node.hpp"
-#include "../../domain/entities/metrics.hpp"
+#include "../../domain/entities/metric_snapshot.hpp"
+#include "../../domain/entities/alert_rule.hpp"
+#include "../../domain/entities/alert_event.hpp"
 #include <chrono>
 
 namespace monitoring::application {
@@ -225,6 +230,91 @@ public:
             result.push_back(metrics);
         }
         return result;
+    }
+
+    // ============ Domain -> DTO 转换方法 ============
+
+    /**
+     * 从ServerNode领域对象转换为NodeHealthDTO
+     */
+    static NodeHealthDTO toNodeHealthDTO(const domain::ServerNode& node) {
+        NodeHealthDTO dto;
+        dto.nodeId = node.getNodeId();
+        dto.hostname = node.getHostname();
+        dto.ipAddress = node.getIpAddress();
+        dto.status = domain::statusToString(node.getStatus());
+        dto.lastSeenAt = node.getLastSeenAt();
+        dto.isOnline = node.isOnline();
+        return dto;
+    }
+
+    /**
+     * 从MetricSnapshot领域对象转换为MetricDataDTO
+     */
+    static MetricDataDTO toMetricDataDTO(const domain::MetricSnapshot& snapshot) {
+        MetricDataDTO dto;
+        dto.timestamp = snapshot.getTimestamp();
+        dto.cpuUsage = snapshot.getCpu().usagePercent;
+        dto.memoryUsage = snapshot.getMemory().usagePercent;
+        
+        // 计算磁盘使用率（取平均值）
+        if (!snapshot.getDisks().empty()) {
+            double totalDiskUsage = 0.0;
+            for (const auto& disk : snapshot.getDisks()) {
+                totalDiskUsage += disk.usagePercent;
+            }
+            dto.diskUsage = totalDiskUsage / snapshot.getDisks().size();
+        } else {
+            dto.diskUsage = 0.0;
+        }
+        
+        // 计算网络速率（取总和）
+        dto.networkRxRate = 0.0;
+        dto.networkTxRate = 0.0;
+        for (const auto& network : snapshot.getNetworks()) {
+            dto.networkRxRate += network.rxRate;
+            dto.networkTxRate += network.txRate;
+        }
+        
+        return dto;
+    }
+
+    /**
+     * 从AlertEvent领域对象转换为AlertEventDTO
+     */
+    static AlertEventDTO toAlertEventDTO(const domain::AlertEvent& event) {
+        AlertEventDTO dto;
+        dto.eventId = event.getEventId();
+        dto.ruleId = event.getRuleId();
+        dto.nodeId = event.getNodeId();
+        dto.status = domain::alertStatusToString(event.getStatus());
+        dto.severity = domain::severityToString(event.getSeverity());
+        dto.startAt = event.getStartAt();
+        dto.endAt = event.getEndAt();
+        dto.triggeredValue = event.getTriggeredValue();
+        dto.details = event.getDetails();
+        dto.acknowledgedBy = event.getAcknowledgedBy();
+        dto.acknowledgedAt = event.getAcknowledgedAt();
+        return dto;
+    }
+
+    /**
+     * 从AlertRule领域对象转换为AlertRuleDTO
+     */
+    static AlertRuleDTO toAlertRuleDTO(const domain::AlertRule& rule) {
+        AlertRuleDTO dto;
+        dto.ruleId = rule.getRuleId();
+        dto.ruleName = rule.getRuleName();
+        dto.metricName = rule.getMetricName();
+        dto.threshold = rule.getThreshold();
+        dto.operator_ = domain::operatorToString(rule.getOperator());
+        dto.durationSeconds = rule.getDuration();
+        dto.severity = domain::severityToString(rule.getSeverity());
+        dto.isEnabled = rule.isEnabled();
+        dto.description = rule.getDescription();
+        dto.createdAt = rule.getCreatedAt();
+        dto.updatedAt = rule.getUpdatedAt();
+        return dto;
     }
 
 private:

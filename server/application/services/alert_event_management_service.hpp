@@ -82,11 +82,6 @@ public:
 
 private:
     std::shared_ptr<domain::IAlertEventRepository> alertEventRepository_;
-
-    /**
-     * 将领域对象转换为DTO
-     */
-    AlertEventDTO convertToDTO(const domain::AlertEvent& event);
 };
 
 } // namespace monitoring::application

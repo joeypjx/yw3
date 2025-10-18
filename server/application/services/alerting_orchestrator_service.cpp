@@ -49,10 +49,15 @@ void AlertingOrchestratorService::stop() {
         return; // 已经停止
     }
 
+    std::cout << "[AlertingOrchestrator] Stopping..." << std::endl;
     shouldStop_.store(true);
     
     if (workerThread_ && workerThread_->joinable()) {
-        workerThread_->join();
+        try {
+            workerThread_->join();
+        } catch (const std::exception& e) {
+            std::cerr << "[AlertingOrchestrator] Error joining thread: " << e.what() << std::endl;
+        }
     }
     
     running_.store(false);
